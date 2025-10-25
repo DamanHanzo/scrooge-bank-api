@@ -26,7 +26,7 @@ def seed_database():
         # Create admin user
         print("  Creating admin user...")
         admin_user = User(
-            email='admin@bank-api.local',
+            email='admin@example.com',
             role='ADMIN',
             is_active=True
         )
@@ -35,7 +35,7 @@ def seed_database():
         
         # Create super admin user
         super_admin = User(
-            email='superadmin@bank-api.local',
+            email='superadmin@example.com',
             role='SUPER_ADMIN',
             is_active=True
         )
@@ -184,8 +184,8 @@ def seed_database():
         
         print("✅ Database seeded successfully!")
         print("\n📋 Sample credentials:")
-        print("  Super Admin: superadmin@bank-api.local / superadmin123")
-        print("  Admin:       admin@bank-api.local / admin123")
+        print("  Super Admin: superadmin@example.com / superadmin123")
+        print("  Admin:       admin@example.com / admin123")
         print("  Customer 1:  john.doe@example.com / password123")
         print("  Customer 2:  jane.smith@example.com / password123")
         print("\n💰 Sample accounts:")
