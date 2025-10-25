@@ -48,6 +48,12 @@ class Config:
     OPENAPI_REDOC_PATH = '/redoc'
     OPENAPI_REDOC_URL = 'https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js'
     
+    # Flask-SMOREST Configuration
+    API_SPEC_OPTIONS = {
+        'x-internal-id': '1',
+    }
+    PROPAGATE_EXCEPTIONS = True
+    
     # CORS Configuration
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
     

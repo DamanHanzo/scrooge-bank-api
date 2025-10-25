@@ -6,12 +6,23 @@ and configuring the Flask application instance.
 """
 
 from flask import Flask
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_smorest import Api
 from sqlalchemy.orm import Session
+from decimal import Decimal
 
 from app.config import Config
+
+
+class DecimalJSONProvider(DefaultJSONProvider):
+    """Custom JSON provider that handles Decimal types."""
+    
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 
 def create_app(config_class=Config) -> Flask:
@@ -27,11 +38,14 @@ def create_app(config_class=Config) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
     
+    # Configure custom JSON encoder to handle Decimal types
+    app.json = DecimalJSONProvider(app)
+    
     # Initialize extensions
-    initialize_extensions(app)
+    api = initialize_extensions(app)
     
     # Register blueprints
-    register_blueprints(app)
+    register_blueprints(api)
     
     # Register error handlers
     register_error_handlers(app)
@@ -42,12 +56,15 @@ def create_app(config_class=Config) -> Flask:
     return app
 
 
-def initialize_extensions(app: Flask) -> None:
+def initialize_extensions(app: Flask) -> Api:
     """
     Initialize Flask extensions.
     
     Args:
         app: Flask application instance
+        
+    Returns:
+        Api instance for registering blueprints
     """
     # CORS - Cross-Origin Resource Sharing
     CORS(app, resources={r"/v1/*": {"origins": app.config.get("CORS_ORIGINS", "*")}})
@@ -56,6 +73,20 @@ def initialize_extensions(app: Flask) -> None:
     jwt = JWTManager(app)
     
     # Flask-SMOREST - OpenAPI/Swagger documentation
+    # Monkey-patch json module to handle Decimal in OpenAPI spec generation
+    import json
+    _original_dumps = json.dumps
+    def custom_dumps(obj, *args, **kwargs):
+        class DecimalEncoder(json.JSONEncoder):
+            def default(self, o):
+                if isinstance(o, Decimal):
+                    return float(o)
+                return super().default(o)
+        if 'cls' not in kwargs:
+            kwargs['cls'] = DecimalEncoder
+        return _original_dumps(obj, *args, **kwargs)
+    json.dumps = custom_dumps
+    
     api = Api(app)
     
     # Database - SQLAlchemy will be initialized in models
@@ -64,20 +95,22 @@ def initialize_extensions(app: Flask) -> None:
     
     # Register JWT callbacks
     register_jwt_callbacks(jwt)
+    
+    return api
 
 
-def register_blueprints(app: Flask) -> None:
+def register_blueprints(api: Api) -> None:
     """
     Register Flask blueprints for API routes.
     
     Args:
-        app: Flask application instance
+        api: Flask-SMOREST Api instance
     """
     # Import blueprints
     from app.api.v1 import register_v1_blueprints
     
     # Register v1 API blueprints
-    register_v1_blueprints(app)
+    register_v1_blueprints(api)
 
 
 def register_error_handlers(app: Flask) -> None:
