@@ -111,7 +111,7 @@ def suspend_customer(args, customer_id):
         require_admin()
         
         service = CustomerService(db.session)
-        customer = service.suspend_customer(customer_id)
+        customer = service.suspend_customer(customer_id, args.get('reason', 'No reason provided'))
         
         return {
             'message': 'Customer suspended successfully',
@@ -174,7 +174,7 @@ def freeze_account(args, account_id):
         require_admin()
         
         service = AccountService(db.session)
-        account = service.freeze_account(account_id)
+        account = service.freeze_account(account_id, args.get('reason', 'No reason provided'))
         
         return {
             'message': 'Account frozen successfully',

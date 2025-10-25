@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models import Customer
 from app.schemas.customer import CustomerCreateRequest, CustomerUpdateRequest
 from app.exceptions import NotFoundError, ValidationError
+from datetime import datetime
 
 
 class CustomerService:
@@ -203,7 +204,9 @@ class CustomerService:
         """
         customer = self.get_customer(customer_id)
         customer.status = 'SUSPENDED'
-        
+        customer.suspended_at = datetime.now()
+        customer.suspended_by = reason
+        customer.suspended_reason = reason
         self.db.commit()
         self.db.refresh(customer)
         return customer
@@ -223,7 +226,9 @@ class CustomerService:
         """
         customer = self.get_customer(customer_id)
         customer.status = 'ACTIVE'
-        
+        customer.suspended_at = None
+        customer.suspended_by = None
+        customer.suspended_reason = None
         self.db.commit()
         self.db.refresh(customer)
         return customer
