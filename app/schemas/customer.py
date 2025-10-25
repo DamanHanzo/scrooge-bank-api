@@ -32,7 +32,6 @@ class CustomerCreateRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100, description="First name")
     last_name: str = Field(..., min_length=1, max_length=100, description="Last name")
     date_of_birth: date = Field(..., description="Date of birth (YYYY-MM-DD)")
-    ssn: str = Field(..., pattern=r'^\d{3}-\d{2}-\d{4}$', description="SSN (XXX-XX-XXXX)")
     phone: Optional[str] = Field(None, pattern=r'^\+?1?\d{10,15}$', description="Phone number")
     address: Optional[AddressSchema] = Field(None, description="Address information")
     
@@ -54,7 +53,6 @@ class CustomerCreateRequest(BaseModel):
                 "first_name": "John",
                 "last_name": "Doe",
                 "date_of_birth": "1990-05-15",
-                "ssn": "123-45-6789",
                 "phone": "+15550123",
                 "address": {
                     "line_1": "123 Main St",

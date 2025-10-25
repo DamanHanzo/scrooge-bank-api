@@ -22,7 +22,6 @@ class Customer(BaseModel):
         first_name: Customer's first name
         last_name: Customer's last name
         date_of_birth: Customer's date of birth
-        ssn_hash: Hashed Social Security Number
         phone: Contact phone number
         address_line_1: Primary address line
         address_line_2: Secondary address line (apt, suite, etc.)
@@ -55,12 +54,6 @@ class Customer(BaseModel):
     date_of_birth: Mapped[date] = mapped_column(
         Date,
         nullable=False
-    )
-    
-    ssn_hash: Mapped[str] = mapped_column(
-        String(128),
-        nullable=False,
-        comment="Hashed SSN for security"
     )
     
     # Contact Information

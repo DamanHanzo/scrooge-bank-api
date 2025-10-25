@@ -13,8 +13,7 @@ alembic==1.12.1
 pydantic==2.5.0
 marshmallow==3.20.1
 
-# Security & Auth
-bcrypt==4.1.1
+# Environment Variables
 python-dotenv==1.0.0
 
 # Testing
