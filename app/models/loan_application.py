@@ -38,7 +38,7 @@ class LoanApplication(BaseModel):
         external_account_number: External account for disbursement
         external_routing_number: External routing number
         rejection_reason: Reason for rejection (if applicable)
-        metadata: Additional application metadata (JSONB)
+        application_metadata: Additional application metadata (JSONB)
     """
     
     __tablename__ = 'loan_applications'
@@ -144,7 +144,7 @@ class LoanApplication(BaseModel):
         nullable=True
     )
     
-    metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+    application_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSONB,
         nullable=True
     )

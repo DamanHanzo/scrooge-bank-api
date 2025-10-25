@@ -30,7 +30,7 @@ class Transaction(BaseModel):
         reference_number: Unique transaction reference
         status: Transaction status (PENDING, COMPLETED, FAILED, REVERSED)
         processed_at: When transaction was processed
-        metadata: Additional transaction metadata (JSONB)
+        transaction_metadata: Additional transaction metadata (JSONB)
     """
     
     __tablename__ = 'transactions'
@@ -89,7 +89,7 @@ class Transaction(BaseModel):
         nullable=True
     )
     
-    metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+    transaction_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSONB,
         nullable=True
     )
