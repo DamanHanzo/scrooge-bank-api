@@ -2,233 +2,182 @@
 Bank API - Customer Routes
 
 REST API endpoints for customer management.
+All schemas imported from centralized registry.
 """
 
-from flask import Blueprint, request, jsonify
+from flask_smorest import Blueprint
+from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError as PydanticValidationError
-from uuid import UUID
 
 from app.models import db
 from app.services.customer_service import CustomerService
 from app.schemas.customer import CustomerCreateRequest, CustomerUpdateRequest
 from app.exceptions import NotFoundError, ValidationError
 
-customers_bp = Blueprint('customers', __name__)
+# Import all schemas from centralized registry
+from app.api.schemas import (
+    CustomerCreateSchema,
+    CustomerUpdateSchema,
+    CustomerResponseSchema,
+    AccountListSchema
+)
 
+# ============================================================================
+# Blueprint
+# ============================================================================
+
+customers_bp = Blueprint(
+    'customers',
+    __name__,
+    url_prefix='/v1/customers',
+    description='Customer management operations'
+)
+
+# ============================================================================
+# Routes
+# ============================================================================
 
 @customers_bp.route('', methods=['POST'])
+@customers_bp.arguments(CustomerCreateSchema, description="Customer details")
+@customers_bp.response(201, CustomerResponseSchema, description="Customer created successfully")
+@customers_bp.alt_response(400, description="Validation error")
+@customers_bp.alt_response(403, description="Admin access required")
 @jwt_required()
-def create_customer():
+def create_customer(args):
     """
-    Create a new customer.
+    Create a new customer (Admin only).
     
-    Returns:
-        201: Customer created successfully
-        400: Validation error
-        403: Not authorized
+    Only administrators can create customers directly.
+    Regular users should use /auth/register.
     """
     try:
-        # Check if user is admin (customers created via registration)
         claims = get_jwt()
         if claims.get('role') not in ['ADMIN', 'SUPER_ADMIN']:
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Only admins can create customers directly'
-                }
-            }), 403
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Admin access required'}}), 403
         
-        # Parse and validate request
-        data = CustomerCreateRequest(**request.json)
-        
-        # Create customer
+        data = CustomerCreateRequest(**args)
         service = CustomerService(db.session)
         customer = service.create_customer(data)
         
-        return jsonify({
+        return {
             'id': str(customer.id),
             'email': customer.email,
             'first_name': customer.first_name,
             'last_name': customer.last_name,
-            'date_of_birth': customer.date_of_birth.isoformat(),
-            'phone': customer.phone,
-            'address_line_1': customer.address_line_1,
-            'address_line_2': customer.address_line_2,
-            'city': customer.city,
-            'state': customer.state,
-            'zip_code': customer.zip_code,
-            'status': customer.status,
-            'created_at': customer.created_at.isoformat(),
-            'updated_at': customer.updated_at.isoformat()
-        }), 201
-        
-    except PydanticValidationError as e:
-        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
-    except ValidationError as e:
+            'status': customer.status
+        }, 201
+    except (PydanticValidationError, ValidationError) as e:
         return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 
 
-@customers_bp.route('/<customer_id>', methods=['GET'])
+@customers_bp.route('/<uuid:customer_id>', methods=['GET'])
+@customers_bp.response(200, CustomerResponseSchema, description="Customer details")
+@customers_bp.alt_response(403, description="Not authorized")
+@customers_bp.alt_response(404, description="Customer not found")
 @jwt_required()
-def get_customer(customer_id: str):
+def get_customer(customer_id):
     """
     Get customer by ID.
     
-    Returns:
-        200: Customer details
-        403: Not authorized
-        404: Customer not found
+    Customers can only view their own profile.
+    Administrators can view any customer.
     """
     try:
-        # Check authorization
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
-        # Customers can only view their own profile
-        if user_role == 'CUSTOMER' and str(user_customer_id) != customer_id:
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Not authorized to view this customer'
-                }
-            }), 403
+        if user_role == 'CUSTOMER' and str(user_customer_id) != str(customer_id):
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
         
-        # Get customer
         service = CustomerService(db.session)
-        customer = service.get_customer(UUID(customer_id))
+        customer = service.get_customer(customer_id)
         
-        return jsonify({
+        return {
             'id': str(customer.id),
             'email': customer.email,
             'first_name': customer.first_name,
             'last_name': customer.last_name,
-            'date_of_birth': customer.date_of_birth.isoformat(),
-            'phone': customer.phone,
-            'address_line_1': customer.address_line_1,
-            'address_line_2': customer.address_line_2,
-            'city': customer.city,
-            'state': customer.state,
-            'zip_code': customer.zip_code,
-            'status': customer.status,
-            'created_at': customer.created_at.isoformat(),
-            'updated_at': customer.updated_at.isoformat()
-        }), 200
-        
+            'status': customer.status
+        }
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 
 
-@customers_bp.route('/<customer_id>', methods=['PATCH'])
+@customers_bp.route('/<uuid:customer_id>', methods=['PATCH'])
+@customers_bp.arguments(CustomerUpdateSchema, description="Customer update data")
+@customers_bp.response(200, CustomerResponseSchema, description="Customer updated successfully")
+@customers_bp.alt_response(403, description="Not authorized")
+@customers_bp.alt_response(404, description="Customer not found")
 @jwt_required()
-def update_customer(customer_id: str):
+def update_customer(args, customer_id):
     """
     Update customer information.
     
-    Returns:
-        200: Customer updated successfully
-        400: Validation error
-        403: Not authorized
-        404: Customer not found
+    Customers can only update their own profile.
+    Administrators can update any customer.
     """
     try:
-        # Check authorization
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
-        # Customers can only update their own profile
-        if user_role == 'CUSTOMER' and str(user_customer_id) != customer_id:
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Not authorized to update this customer'
-                }
-            }), 403
+        if user_role == 'CUSTOMER' and str(user_customer_id) != str(customer_id):
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
         
-        # Parse and validate request
-        data = CustomerUpdateRequest(**request.json)
-        
-        # Update customer
+        data = CustomerUpdateRequest(**args)
         service = CustomerService(db.session)
-        customer = service.update_customer(UUID(customer_id), data)
+        customer = service.update_customer(customer_id, data)
         
-        return jsonify({
+        return {
             'id': str(customer.id),
             'email': customer.email,
             'first_name': customer.first_name,
             'last_name': customer.last_name,
-            'date_of_birth': customer.date_of_birth.isoformat(),
-            'phone': customer.phone,
-            'address_line_1': customer.address_line_1,
-            'address_line_2': customer.address_line_2,
-            'city': customer.city,
-            'state': customer.state,
-            'zip_code': customer.zip_code,
-            'status': customer.status,
-            'created_at': customer.created_at.isoformat(),
-            'updated_at': customer.updated_at.isoformat()
-        }), 200
-        
-    except PydanticValidationError as e:
-        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
-    except ValidationError as e:
-        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
+            'status': customer.status
+        }
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 
 
-@customers_bp.route('/<customer_id>/accounts', methods=['GET'])
+@customers_bp.route('/<uuid:customer_id>/accounts', methods=['GET'])
+@customers_bp.response(200, AccountListSchema, description="List of customer accounts")
+@customers_bp.alt_response(403, description="Not authorized")
 @jwt_required()
-def get_customer_accounts(customer_id: str):
+def get_customer_accounts(customer_id):
     """
     Get all accounts for a customer.
     
-    Returns:
-        200: List of accounts
-        403: Not authorized
+    Customers can only view their own accounts.
+    Administrators can view any customer's accounts.
     """
     try:
-        # Check authorization
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
-        # Customers can only view their own accounts
-        if user_role == 'CUSTOMER' and str(user_customer_id) != customer_id:
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Not authorized to view these accounts'
-                }
-            }), 403
+        if user_role == 'CUSTOMER' and str(user_customer_id) != str(customer_id):
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
         
-        # Get accounts
         from app.services.account_service import AccountService
         service = AccountService(db.session)
-        accounts = service.get_customer_accounts(UUID(customer_id))
+        accounts = service.get_customer_accounts(customer_id)
         
-        return jsonify({
+        return {
             'data': [{
                 'id': str(account.id),
-                'customer_id': str(account.customer_id),
                 'account_type': account.account_type,
                 'account_number': account.account_number,
                 'status': account.status,
-                'balance': str(account.balance),
-                'currency': account.currency,
-                'created_at': account.created_at.isoformat(),
-                'updated_at': account.updated_at.isoformat()
+                'balance': str(account.balance)
             } for account in accounts]
-        }), 200
-        
+        }
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
-

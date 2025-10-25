@@ -2,134 +2,116 @@
 Bank API - Loan Routes
 
 REST API endpoints for loan application management.
+All schemas imported from centralized registry.
 """
 
-from flask import Blueprint, request, jsonify
+from flask_smorest import Blueprint
+from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError as PydanticValidationError
-from uuid import UUID
 
 from app.models import db
 from app.services.loan_service import LoanService
 from app.schemas.loan import LoanApplicationRequest
 from app.exceptions import NotFoundError, ValidationError, BusinessRuleViolationError
 
-loans_bp = Blueprint('loans', __name__)
+# Import all schemas from centralized registry
+from app.api.schemas import (
+    LoanApplicationSchema,
+    LoanResponseSchema,
+    LoanListSchema,
+    LoanFilterSchema,
+    MessageSchema
+)
 
+# ============================================================================
+# Blueprint
+# ============================================================================
+
+loans_bp = Blueprint(
+    'loans',
+    __name__,
+    url_prefix='/v1/loan-applications',
+    description='Loan application management'
+)
+
+# ============================================================================
+# Routes
+# ============================================================================
 
 @loans_bp.route('', methods=['POST'])
+@loans_bp.arguments(LoanApplicationSchema, description="Loan application details")
+@loans_bp.response(201, LoanResponseSchema, description="Loan application submitted")
+@loans_bp.alt_response(403, description="Not authorized")
+@loans_bp.alt_response(422, description="Business rule violation")
 @jwt_required()
-def submit_loan_application():
+def submit_loan_application(args):
     """
     Submit a new loan application.
     
-    Returns:
-        201: Application submitted successfully
-        400: Validation error
-        403: Not authorized
-        422: Business rule violation
+    Submits a loan application for review. Customers can only apply for their own loans.
+    Maximum loan amount is $100,000.
     """
     try:
-        # Parse and validate request
-        data = LoanApplicationRequest(**request.json)
+        data = LoanApplicationRequest(**args)
         
-        # Check authorization - customers can only apply for their own loans
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
         if user_role == 'CUSTOMER' and str(user_customer_id) != str(data.customer_id):
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Not authorized to submit loan application for this customer'
-                }
-            }), 403
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
         
-        # Submit application
         service = LoanService(db.session)
         application = service.submit_application(data)
         
-        return jsonify({
+        return {
             'id': str(application.id),
             'customer_id': str(application.customer_id),
             'application_number': application.application_number,
             'requested_amount': str(application.requested_amount),
-            'purpose': application.purpose,
-            'term_months': application.term_months,
-            'employment_status': application.employment_status,
-            'annual_income': str(application.annual_income),
             'status': application.status,
-            'applied_at': application.applied_at.isoformat(),
-            'external_account': {
-                'account_number': f"***{application.external_account_number[-4:]}",
-                'routing_number': application.external_routing_number
-            }
-        }), 201
-        
-    except PydanticValidationError as e:
+            'applied_at': application.applied_at.isoformat()
+        }, 201
+    except (PydanticValidationError, ValidationError) as e:
         return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
-    except ValidationError as e:
-        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
-    except NotFoundError as e:
-        return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except BusinessRuleViolationError as e:
         return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 
 
-@loans_bp.route('/<application_id>', methods=['GET'])
+@loans_bp.route('/<uuid:application_id>', methods=['GET'])
+@loans_bp.response(200, LoanResponseSchema, description="Loan application details")
+@loans_bp.alt_response(403, description="Not authorized")
+@loans_bp.alt_response(404, description="Loan application not found")
 @jwt_required()
-def get_loan_application(application_id: str):
+def get_loan_application(application_id):
     """
     Get loan application by ID.
     
-    Returns:
-        200: Application details
-        403: Not authorized
-        404: Application not found
+    Retrieves loan application details.
+    Customers can only view their own applications.
     """
     try:
         service = LoanService(db.session)
-        application = service.get_application(UUID(application_id))
+        application = service.get_application(application_id)
         
-        # Check authorization
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
         if user_role == 'CUSTOMER' and str(user_customer_id) != str(application.customer_id):
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Not authorized to view this application'
-                }
-            }), 403
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
         
-        return jsonify({
+        return {
             'id': str(application.id),
             'customer_id': str(application.customer_id),
-            'loan_account_id': str(application.loan_account_id) if application.loan_account_id else None,
             'application_number': application.application_number,
             'requested_amount': str(application.requested_amount),
-            'approved_amount': str(application.approved_amount) if application.approved_amount else None,
-            'interest_rate': str(application.interest_rate) if application.interest_rate else None,
-            'term_months': application.term_months,
-            'purpose': application.purpose,
-            'employment_status': application.employment_status,
-            'annual_income': str(application.annual_income),
             'status': application.status,
-            'applied_at': application.applied_at.isoformat(),
-            'reviewed_at': application.reviewed_at.isoformat() if application.reviewed_at else None,
-            'disbursed_at': application.disbursed_at.isoformat() if application.disbursed_at else None,
-            'rejection_reason': application.rejection_reason,
-            'external_account': {
-                'account_number': f"***{application.external_account_number[-4:]}",
-                'routing_number': application.external_routing_number
-            } if application.external_account_number else None
-        }), 200
-        
+            'applied_at': application.applied_at.isoformat()
+        }
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except Exception as e:
@@ -137,115 +119,87 @@ def get_loan_application(application_id: str):
 
 
 @loans_bp.route('', methods=['GET'])
+@loans_bp.arguments(LoanFilterSchema, location='query', description="Filter parameters")
+@loans_bp.response(200, LoanListSchema, description="List of loan applications")
+@loans_bp.alt_response(403, description="Not authorized")
 @jwt_required()
-def list_loan_applications():
+def list_loan_applications(query_args):
     """
     List loan applications.
     
-    For customers: returns only their applications
-    For admins: returns all applications
-    
-    Query Parameters:
-        - status: Filter by status
-        - limit: Number of results (default 20)
-        - offset: Pagination offset (default 0)
-    
-    Returns:
-        200: List of applications
+    For customers: returns only their applications.
+    For admins: returns all applications.
     """
     try:
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
-        # Parse query parameters
-        status = request.args.get('status')
-        limit = int(request.args.get('limit', 20))
-        offset = int(request.args.get('offset', 0))
-        
         service = LoanService(db.session)
         
-        # Customers can only see their own applications
         if user_role == 'CUSTOMER':
-            applications = service.get_customer_applications(
-                UUID(user_customer_id),
-                status=status
+            applications, total = service.get_customer_applications(
+                user_customer_id,
+                status=query_args.get('status'),
+                limit=query_args.get('limit', 20),
+                offset=query_args.get('offset', 0)
             )
-            total = len(applications)
-            applications = applications[offset:offset+limit]
         else:
-            # Admins can see all applications
-            applications, total = service.list_applications(
-                status=status,
-                limit=limit,
-                offset=offset
+            applications, total = service.get_all_applications(
+                status=query_args.get('status'),
+                limit=query_args.get('limit', 20),
+                offset=query_args.get('offset', 0)
             )
         
-        return jsonify({
+        return {
             'data': [{
                 'id': str(app.id),
                 'customer_id': str(app.customer_id),
                 'application_number': app.application_number,
                 'requested_amount': str(app.requested_amount),
-                'approved_amount': str(app.approved_amount) if app.approved_amount else None,
                 'status': app.status,
-                'applied_at': app.applied_at.isoformat(),
-                'purpose': app.purpose
+                'applied_at': app.applied_at.isoformat()
             } for app in applications],
             'pagination': {
                 'total': total,
-                'limit': limit,
-                'offset': offset,
-                'has_more': (offset + limit) < total
+                'limit': query_args.get('limit', 20),
+                'offset': query_args.get('offset', 0)
             }
-        }), 200
-        
+        }
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 
 
-@loans_bp.route('/<application_id>/cancel', methods=['POST'])
+@loans_bp.route('/<uuid:application_id>/cancel', methods=['POST'])
+@loans_bp.response(200, MessageSchema, description="Loan application cancelled")
+@loans_bp.alt_response(403, description="Not authorized")
+@loans_bp.alt_response(404, description="Loan application not found")
+@loans_bp.alt_response(422, description="Cannot cancel - already approved or disbursed")
 @jwt_required()
-def cancel_loan_application(application_id: str):
+def cancel_loan_application(application_id):
     """
     Cancel a loan application.
     
-    Returns:
-        200: Application cancelled
-        403: Not authorized
-        404: Application not found
-        422: Cannot cancel application in current status
+    Only customers can cancel their own pending applications.
+    Approved or disbursed loans cannot be cancelled.
     """
     try:
         service = LoanService(db.session)
-        application = service.get_application(UUID(application_id))
+        application = service.get_application(application_id)
         
-        # Check authorization
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
         
         if user_role == 'CUSTOMER' and str(user_customer_id) != str(application.customer_id):
-            return jsonify({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Not authorized to cancel this application'
-                }
-            }), 403
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
         
-        # Cancel application
-        application = service.cancel_application(UUID(application_id))
+        service.cancel_application(application_id)
         
-        return jsonify({
-            'id': str(application.id),
-            'status': application.status,
-            'message': 'Application cancelled successfully'
-        }), 200
-        
+        return {'message': 'Loan application cancelled successfully'}
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except BusinessRuleViolationError as e:
         return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
-
