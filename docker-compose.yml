@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: bank_api_db
+    environment:
+      POSTGRES_USER: bank_user
+      POSTGRES_PASSWORD: bank_password
+      POSTGRES_DB: bank_api_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank_user -d bank_api_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bank_api_network
+
+  # Flask API Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank_api_app
+    environment:
+      FLASK_APP: run.py
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://bank_user:bank_password@db:5432/bank_api_dev
+      SECRET_KEY: dev-secret-key-change-in-production
+      JWT_SECRET_KEY: dev-jwt-secret-key-change-in-production
+      JWT_ACCESS_TOKEN_EXPIRES: 3600
+      JWT_REFRESH_TOKEN_EXPIRES: 2592000
+      API_VERSION: v1
+      API_TITLE: Bank API
+      API_DESCRIPTION: RESTful Banking API
+      ENABLE_WITHDRAWALS: "true"
+      ENABLE_LOANS: "true"
+      ENABLE_RATE_LIMITING: "false"
+      LOG_LEVEL: INFO
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - ./tests:/app/tests
+      - ./alembic:/app/alembic
+      - ./scripts:/app/scripts
+    depends_on:
+      db:
+        condition: service_healthy
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+    networks:
+      - bank_api_network
+
+  # PgAdmin (Database Management Tool)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: bank_api_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@bank-api.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    networks:
+      - bank_api_network
+    profiles:
+      - tools  # Optional: only starts with --profile tools
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  bank_api_network:
+    driver: bridge
+
