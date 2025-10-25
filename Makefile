@@ -86,6 +86,6 @@ install:  ## Install pre-commit hooks
 	pre-commit install
 
 setup: up migrate seed  ## Complete setup (start, migrate, seed)
-	@echo "✅ Setup complete! API available at http://localhost:5000"
-	@echo "📚 API docs at http://localhost:5000/api/docs"
+	@echo "✅ Setup complete! API available at http://localhost:5025"
+	@echo "📚 API docs at http://localhost:5025/api/docs"
 

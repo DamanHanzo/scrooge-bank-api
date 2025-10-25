@@ -29,6 +29,7 @@ services:
       dockerfile: Dockerfile
     container_name: bank_api_app
     environment:
+      PYTHONPATH: /app
       FLASK_APP: run.py
       FLASK_ENV: development
       DATABASE_URL: postgresql://bank_user:bank_password@db:5432/bank_api_dev
@@ -44,7 +45,7 @@ services:
       ENABLE_RATE_LIMITING: "false"
       LOG_LEVEL: INFO
     ports:
-      - "5000:5000"
+      - "5025:5025"
     volumes:
       - ./app:/app/app
       - ./tests:/app/tests
@@ -53,7 +54,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: flask run --host=0.0.0.0 --port=5000 --reload
+    command: flask run --host=0.0.0.0 --port=5025 --reload
     networks:
       - bank_api_network
 
