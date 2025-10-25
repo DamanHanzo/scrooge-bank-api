@@ -34,7 +34,6 @@ class LoanApplicationRequest(BaseModel):
         ...,
         gt=0,
         le=100000,
-        decimal_places=2,
         description="Requested loan amount"
     )
     purpose: str = Field(..., min_length=1, max_length=100, description="Loan purpose")
@@ -43,7 +42,7 @@ class LoanApplicationRequest(BaseModel):
         ...,
         description="Employment status"
     )
-    annual_income: Decimal = Field(..., ge=0, decimal_places=2, description="Annual income")
+    annual_income: Decimal = Field(..., ge=0, description="Annual income")
     external_account: ExternalAccountSchema = Field(..., description="External account for disbursement")
     
     model_config = {
@@ -70,14 +69,12 @@ class LoanReviewRequest(BaseModel):
     approved_amount: Optional[Decimal] = Field(
         None,
         gt=0,
-        decimal_places=2,
         description="Approved amount (if approved)"
     )
     interest_rate: Optional[Decimal] = Field(
         None,
         ge=0,
         le=1,
-        decimal_places=4,
         description="Interest rate as decimal (e.g., 0.0525 for 5.25%)"
     )
     term_months: Optional[int] = Field(None, ge=6, le=84, description="Approved term in months")

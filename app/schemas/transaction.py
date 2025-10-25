@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 class DepositRequest(BaseModel):
     """Schema for deposit transaction request."""
-    amount: Decimal = Field(..., gt=0, decimal_places=2, description="Deposit amount")
+    amount: Decimal = Field(..., gt=0, description="Deposit amount")
     currency: str = Field(default='USD', pattern=r'^[A-Z]{3}$', description="Currency code")
     description: Optional[str] = Field(None, max_length=500, description="Transaction description")
     
@@ -31,7 +31,7 @@ class DepositRequest(BaseModel):
 
 class WithdrawalRequest(BaseModel):
     """Schema for withdrawal transaction request."""
-    amount: Decimal = Field(..., gt=0, decimal_places=2, description="Withdrawal amount")
+    amount: Decimal = Field(..., gt=0, description="Withdrawal amount")
     currency: str = Field(default='USD', pattern=r'^[A-Z]{3}$', description="Currency code")
     description: Optional[str] = Field(None, max_length=500, description="Transaction description")
     

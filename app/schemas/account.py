@@ -19,7 +19,6 @@ class AccountCreateRequest(BaseModel):
     initial_deposit: Optional[Decimal] = Field(
         None,
         ge=0,
-        decimal_places=2,
         description="Initial deposit amount (for checking accounts)"
     )
     currency: str = Field(default='USD', pattern=r'^[A-Z]{3}$', description="Currency code")
