@@ -1,0 +1,53 @@
+# Flake8 Configuration
+# Python linting rules
+
+[flake8]
+# Maximum line length
+max-line-length = 100
+
+# Exclude directories
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    .pytest_cache,
+    .mypy_cache,
+    alembic/versions,
+    docs
+
+# Ignore specific rules
+ignore =
+    # E203: whitespace before ':' (conflicts with black)
+    E203,
+    # W503: line break before binary operator (conflicts with black)
+    W503,
+    # E501: line too long (handled by black)
+    E501,
+    # F401: module imported but unused (sometimes needed for __init__.py)
+    # F401,
+
+# Maximum complexity
+max-complexity = 10
+
+# Show source code for errors
+show-source = True
+
+# Count errors
+count = True
+
+# Enable specific checks
+select = B,C,E,F,W,T4,B9
+
+# Per-file ignores
+per-file-ignores =
+    # __init__.py can have unused imports
+    __init__.py:F401,F403
+    # Tests can have long lines and unused imports
+    tests/*:F401,E501
+
