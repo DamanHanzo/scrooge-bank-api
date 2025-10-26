@@ -149,7 +149,7 @@ AccountResponseSchema = create_response_schema(
         }),
         'account_number': fields.String(required=True),
         'status': fields.String(required=True, metadata={
-            'enum': ['ACTIVE', 'FROZEN', 'CLOSED']
+            'enum': ['ACTIVE', 'CLOSED']
         }),
         'balance': fields.String(required=True, metadata={
             'description': 'Account balance (Decimal as string)'

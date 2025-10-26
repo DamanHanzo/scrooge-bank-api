@@ -77,14 +77,6 @@ class InsufficientFundsError(BusinessRuleViolationError):
         super().__init__(message)
 
 
-class AccountFrozenError(BusinessRuleViolationError):
-    """Exception raised when attempting to operate on a frozen account."""
-    error_code = "ACCOUNT_FROZEN"
-    
-    def __init__(self, message: str = "Account is frozen"):
-        super().__init__(message)
-
-
 class TransactionLimitError(BusinessRuleViolationError):
     """Exception raised when transaction limit is exceeded."""
     error_code = "TRANSACTION_LIMIT_EXCEEDED"

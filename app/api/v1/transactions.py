@@ -15,7 +15,7 @@ from app.services.account_service import AccountService
 from app.schemas.transaction import DepositRequest, WithdrawalRequest
 from app.exceptions import (
     NotFoundError, BusinessRuleViolationError,
-    InsufficientFundsError, AccountFrozenError, TransactionLimitError
+    InsufficientFundsError, TransactionLimitError
 )
 
 # Import all schemas from centralized registry
@@ -121,7 +121,7 @@ def create_withdrawal(args, account_id):
             'reference_number': transaction.reference_number,
             'status': transaction.status
         }, 201
-    except (InsufficientFundsError, AccountFrozenError, TransactionLimitError, BusinessRuleViolationError) as e:
+    except (InsufficientFundsError, TransactionLimitError, BusinessRuleViolationError) as e:
         return jsonify({'error': {'code': e.__class__.__name__, 'message': str(e)}}), 422
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500

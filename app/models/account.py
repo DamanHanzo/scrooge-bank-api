@@ -23,7 +23,7 @@ class Account(BaseModel):
         customer_id: Foreign key to customer
         account_type: Type of account (CHECKING, LOAN)
         account_number: Unique account number
-        status: Account status (ACTIVE, CLOSED, FROZEN)
+        status: Account status (ACTIVE, CLOSED)
         balance: Current account balance
         currency: Currency code (default USD)
     """
@@ -97,13 +97,11 @@ class Account(BaseModel):
             name='chk_account_type'
         ),
         CheckConstraint(
-            "status IN ('ACTIVE', 'CLOSED', 'FROZEN')",
+            "status IN ('ACTIVE', 'CLOSED')",
             name='chk_account_status'
         ),
-        CheckConstraint(
-            "(account_type != 'CHECKING') OR (balance >= 0)",
-            name='chk_balance_checking'
-        ),
+        # Note: chk_balance_checking removed to allow negative balances (overdrafts)
+        # Business Rule: Withdrawals can put bank into debt
         CheckConstraint(
             "(account_type != 'LOAN') OR (balance <= 0)",
             name='chk_balance_loan'
@@ -118,11 +116,6 @@ class Account(BaseModel):
     def is_active(self) -> bool:
         """Check if account is active."""
         return self.status == 'ACTIVE'
-    
-    @property
-    def is_frozen(self) -> bool:
-        """Check if account is frozen."""
-        return self.status == 'FROZEN'
     
     @property
     def is_checking(self) -> bool:

@@ -22,7 +22,6 @@ from app.exceptions import (
     ValidationError,
     BusinessRuleViolationError,
     InsufficientFundsError,
-    AccountFrozenError,
     TransactionLimitError
 )
 
@@ -329,8 +328,7 @@ class TransactionService:
             
         Raises:
             NotFoundError: If account not found
-            AccountFrozenError: If account is frozen
-            BusinessRuleViolationError: If account type mismatch
+            BusinessRuleViolationError: If account type mismatch or cannot transact
         """
         account = self.db.query(Account).filter(
             Account.id == account_id
@@ -343,9 +341,6 @@ class TransactionService:
             raise BusinessRuleViolationError(
                 f"Invalid account type. Expected {expected_type}, got {account.account_type}"
             )
-        
-        if account.is_frozen:
-            raise AccountFrozenError("Account is frozen and cannot perform transactions")
         
         if not account.can_transact():
             raise BusinessRuleViolationError(

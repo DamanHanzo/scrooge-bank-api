@@ -99,14 +99,14 @@ class AccountBalanceResponse(BaseModel):
 
 class AccountStatusUpdateRequest(BaseModel):
     """Schema for updating account status."""
-    status: Literal['ACTIVE', 'CLOSED', 'FROZEN'] = Field(..., description="New account status")
+    status: Literal['ACTIVE', 'CLOSED'] = Field(..., description="New account status")
     reason: Optional[str] = Field(None, max_length=500, description="Reason for status change")
     
     model_config = {
         "json_schema_extra": {
             "example": {
-                "status": "FROZEN",
-                "reason": "Suspected fraudulent activity"
+                "status": "CLOSED",
+                "reason": "Account closure requested by customer"
             }
         }
     }

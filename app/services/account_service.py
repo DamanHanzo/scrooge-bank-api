@@ -178,7 +178,7 @@ class AccountService:
         
         Args:
             account_id: Account UUID
-            new_status: New status (ACTIVE, CLOSED, FROZEN)
+            new_status: New status (ACTIVE, CLOSED)
             reason: Reason for status change
             
         Returns:
@@ -190,7 +190,7 @@ class AccountService:
         """
         account = self.get_account(account_id)
         
-        valid_statuses = ['ACTIVE', 'CLOSED', 'FROZEN']
+        valid_statuses = ['ACTIVE', 'CLOSED']
         if new_status not in valid_statuses:
             raise ValidationError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
         
@@ -203,31 +203,6 @@ class AccountService:
         except IntegrityError as e:
             self.db.rollback()
             raise ValidationError(f"Error updating account status: {str(e)}")
-    
-    def freeze_account(self, account_id: UUID, reason: str) -> Account:
-        """
-        Freeze an account (admin operation).
-        
-        Args:
-            account_id: Account UUID
-            reason: Reason for freezing
-            
-        Returns:
-            Updated account instance
-        """
-        return self.update_account_status(account_id, 'FROZEN', reason)
-    
-    def unfreeze_account(self, account_id: UUID) -> Account:
-        """
-        Unfreeze an account (admin operation).
-        
-        Args:
-            account_id: Account UUID
-            
-        Returns:
-            Updated account instance
-        """
-        return self.update_account_status(account_id, 'ACTIVE')
     
     def close_account(self, account_id: UUID) -> Account:
         """
