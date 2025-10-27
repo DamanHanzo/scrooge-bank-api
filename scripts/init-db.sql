@@ -13,7 +13,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE account_status AS ENUM ('ACTIVE', 'CLOSED', 'FROZEN');
+    CREATE TYPE account_status AS ENUM ('ACTIVE', 'CLOSED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

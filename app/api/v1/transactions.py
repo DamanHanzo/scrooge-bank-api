@@ -78,6 +78,8 @@ def create_deposit(args, account_id):
             'reference_number': transaction.reference_number,
             'status': transaction.status
         }, 201
+    except NotFoundError as e:
+        return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except BusinessRuleViolationError as e:
         return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
     except Exception as e:

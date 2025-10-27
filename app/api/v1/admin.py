@@ -162,69 +162,6 @@ def activate_customer(customer_id):
         return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
 
 
-@admin_bp.route("/accounts/<uuid:account_id>/freeze", methods=["POST"])
-@admin_bp.arguments(ReasonSchema, description="Optional freeze reason")
-@admin_bp.response(200, AdminActionResponseSchema, description="Account frozen")
-@admin_bp.alt_response(403, description="Admin access required")
-@admin_bp.alt_response(404, description="Account not found")
-@jwt_required()
-def freeze_account(args, account_id):
-    """
-    Freeze an account (Admin only).
-
-    Freezes an account to prevent transactions.
-    Only accessible by administrators.
-    """
-    try:
-        require_admin()
-
-        service = AccountService(db.session)
-        account = service.freeze_account(account_id, args.get("reason", "No reason provided"))
-
-        return {
-            "message": "Account frozen successfully",
-            "id": str(account.id),
-            "status": account.status,
-        }
-    except AuthorizationError as e:
-        return jsonify({"error": {"code": "FORBIDDEN", "message": str(e)}}), 403
-    except NotFoundError as e:
-        return jsonify({"error": {"code": "NOT_FOUND", "message": str(e)}}), 404
-    except Exception as e:
-        return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
-
-
-@admin_bp.route("/accounts/<uuid:account_id>/unfreeze", methods=["POST"])
-@admin_bp.response(200, AdminActionResponseSchema, description="Account unfrozen")
-@admin_bp.alt_response(403, description="Admin access required")
-@admin_bp.alt_response(404, description="Account not found")
-@jwt_required()
-def unfreeze_account(account_id):
-    """
-    Unfreeze an account (Admin only).
-
-    Unfreezes a previously frozen account.
-    Only accessible by administrators.
-    """
-    try:
-        require_admin()
-
-        service = AccountService(db.session)
-        account = service.unfreeze_account(account_id)
-
-        return {
-            "message": "Account unfrozen successfully",
-            "id": str(account.id),
-            "status": account.status,
-        }
-    except AuthorizationError as e:
-        return jsonify({"error": {"code": "FORBIDDEN", "message": str(e)}}), 403
-    except NotFoundError as e:
-        return jsonify({"error": {"code": "NOT_FOUND", "message": str(e)}}), 404
-    except Exception as e:
-        return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
-
-
 @admin_bp.route("/loan-applications/<uuid:application_id>/review", methods=["POST"])
 @admin_bp.arguments(LoanReviewSchema, description="Loan review decision")
 @admin_bp.response(200, AdminActionResponseSchema, description="Loan application reviewed")
