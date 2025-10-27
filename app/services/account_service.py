@@ -31,30 +31,46 @@ class AccountService:
         """
         self.db = db
     
-    def create_account(self, account_data: AccountCreateRequest) -> Account:
+    def create_account(self, account_data: AccountCreateRequest, customer_id: UUID) -> Account:
         """
         Create a new account.
         
         Args:
-            account_data: Account creation data
+            account_data: Account creation data (account_type, initial_deposit, currency)
+            customer_id: UUID of the customer creating the account (from JWT token)
             
         Returns:
             Created account instance
             
         Raises:
             NotFoundError: If customer not found
+            BusinessRuleViolationError: If business rule is violated
             ValidationError: If validation fails
         """
         # Verify customer exists and is active
         customer = self.db.query(Customer).filter(
-            Customer.id == account_data.customer_id
+            Customer.id == customer_id
         ).first()
         
         if not customer:
-            raise NotFoundError(f"Customer with ID {account_data.customer_id} not found")
+            raise NotFoundError(f"Customer with ID {customer_id} not found")
         
         if not customer.is_active:
             raise BusinessRuleViolationError("Cannot create account for inactive customer")
+        
+        # Check for existing open accounts (single account rule)
+        # Rule applies to ALL account types (CHECKING and LOAN)
+        existing_account = self.db.query(Account).filter(
+            Account.customer_id == customer_id,
+            Account.status == 'ACTIVE'
+        ).first()
+        
+        if existing_account:
+            raise BusinessRuleViolationError(
+                f"Customer already has an open {existing_account.account_type.lower()} account "
+                f"(Account #: {existing_account.account_number}). "
+                f"Only one account per customer is allowed. Please close existing account before opening a new one."
+            )
         
         # Generate unique account number
         account_number = self._generate_account_number(account_data.account_type)
@@ -66,7 +82,7 @@ class AccountService:
         
         # Create account
         account = Account(
-            customer_id=account_data.customer_id,
+            customer_id=customer_id,
             account_type=account_data.account_type,
             account_number=account_number,
             status='ACTIVE',

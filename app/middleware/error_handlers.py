@@ -4,6 +4,8 @@ Bank API - Error Handlers
 Global error handlers for consistent error responses.
 """
 
+import logging
+import traceback
 from datetime import datetime
 from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
@@ -15,6 +17,8 @@ from app.exceptions import (
     NotFoundError,
     BusinessRuleViolationError
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_error_response(error_code: str, message: str, status_code: int, details: dict = None):
@@ -161,9 +165,8 @@ def handle_generic_error(error: Exception):
         JSON error response
     """
     # Log the error for debugging
-    import traceback
-    print(f"Unhandled exception: {str(error)}")
-    print(traceback.format_exc())
+    logger.error(f"Unhandled exception: {str(error)}")
+    logger.error(traceback.format_exc())
     
     # Don't expose internal error details in production
     return create_error_response(
