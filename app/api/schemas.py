@@ -12,7 +12,7 @@ All Pydantic models are converted to Marshmallow schemas here, ensuring:
 
 Usage:
     from app.api.schemas import LoginSchema, TokenResponseSchema
-    
+
     @auth_bp.arguments(LoginSchema)
     @auth_bp.response(200, TokenResponseSchema)
     def login(args):
@@ -27,32 +27,19 @@ from app.api.schema_bridge import pydantic_to_marshmallow, create_response_schem
 # ============================================================================
 
 # Auth schemas
-from app.schemas.auth import (
-    LoginRequest,
-    RegisterRequest,
-    PasswordChangeRequest
-)
+from app.schemas.auth import LoginRequest, RegisterRequest, PasswordChangeRequest
 
 # Customer schemas
-from app.schemas.customer import (
-    CustomerCreateRequest,
-    CustomerUpdateRequest
-)
+from app.schemas.customer import CustomerCreateRequest, CustomerUpdateRequest
 
 # Account schemas
 from app.schemas.account import AccountCreateRequest
 
 # Transaction schemas
-from app.schemas.transaction import (
-    DepositRequest,
-    WithdrawalRequest
-)
+from app.schemas.transaction import DepositRequest, WithdrawalRequest
 
 # Loan schemas
-from app.schemas.loan import (
-    LoanApplicationRequest,
-    LoanReviewRequest
-)
+from app.schemas.loan import LoanApplicationRequest, LoanReviewRequest
 
 
 # ============================================================================
@@ -86,146 +73,145 @@ LoanReviewSchema = pydantic_to_marshmallow(LoanReviewRequest)
 
 # Auth responses
 TokenResponseSchema = create_response_schema(
-    'TokenResponse',
+    "TokenResponse",
     {
-        'access_token': fields.String(required=True, metadata={
-            'description': 'JWT access token',
-            'example': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-        }),
-        'refresh_token': fields.String(required=True, metadata={
-            'description': 'JWT refresh token',
-            'example': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-        }),
-        'token_type': fields.String(required=True, metadata={
-            'description': 'Token type',
-            'example': 'bearer'
-        }),
-        'expires_in': fields.Integer(required=True, metadata={
-            'description': 'Token expiration time in seconds',
-            'example': 3600
-        })
-    }
+        "access_token": fields.String(
+            required=True,
+            metadata={
+                "description": "JWT access token",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            },
+        ),
+        "refresh_token": fields.String(
+            required=True,
+            metadata={
+                "description": "JWT refresh token",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            },
+        ),
+        "token_type": fields.String(
+            required=True, metadata={"description": "Token type", "example": "bearer"}
+        ),
+        "expires_in": fields.Integer(
+            required=True,
+            metadata={"description": "Token expiration time in seconds", "example": 3600},
+        ),
+    },
 )
 
 UserInfoSchema = create_response_schema(
-    'UserInfo',
+    "UserInfo",
     {
-        'id': fields.UUID(required=True),
-        'email': fields.String(required=True),
-        'role': fields.String(required=True, metadata={
-            'description': 'User role',
-            'example': 'CUSTOMER',
-            'enum': ['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']
-        }),
-        'is_active': fields.Boolean(required=True),
-        'customer_id': fields.UUID(allow_none=True),
-        'created_at': fields.DateTime(required=True)
-    }
+        "id": fields.UUID(required=True),
+        "email": fields.String(required=True),
+        "role": fields.String(
+            required=True,
+            metadata={
+                "description": "User role",
+                "example": "CUSTOMER",
+                "enum": ["CUSTOMER", "ADMIN", "SUPER_ADMIN"],
+            },
+        ),
+        "is_active": fields.Boolean(required=True),
+        "customer_id": fields.UUID(allow_none=True),
+        "created_at": fields.DateTime(required=True),
+    },
 )
 
 # Customer responses
 CustomerResponseSchema = create_response_schema(
-    'CustomerResponse',
+    "CustomerResponse",
     {
-        'id': fields.UUID(required=True),
-        'email': fields.String(required=True),
-        'first_name': fields.String(required=True),
-        'last_name': fields.String(required=True),
-        'status': fields.String(required=True, metadata={
-            'enum': ['ACTIVE', 'SUSPENDED', 'CLOSED']
-        }),
-        'created_at': fields.DateTime(required=False)
-    }
+        "id": fields.UUID(required=True),
+        "email": fields.String(required=True),
+        "first_name": fields.String(required=True),
+        "last_name": fields.String(required=True),
+        "status": fields.String(
+            required=True, metadata={"enum": ["ACTIVE", "SUSPENDED", "CLOSED"]}
+        ),
+        "created_at": fields.DateTime(required=False),
+    },
 )
 
 # Account responses
 AccountResponseSchema = create_response_schema(
-    'AccountResponse',
+    "AccountResponse",
     {
-        'id': fields.UUID(required=True),
-        'customer_id': fields.UUID(required=True),
-        'account_type': fields.String(required=True, metadata={
-            'enum': ['CHECKING', 'LOAN']
-        }),
-        'account_number': fields.String(required=True),
-        'status': fields.String(required=True, metadata={
-            'enum': ['ACTIVE', 'CLOSED']
-        }),
-        'balance': fields.String(required=True, metadata={
-            'description': 'Account balance (Decimal as string)'
-        }),
-        'currency': fields.String(required=True, metadata={
-            'example': 'USD'
-        })
-    }
+        "id": fields.UUID(required=True),
+        "customer_id": fields.UUID(required=True),
+        "account_type": fields.String(required=True, metadata={"enum": ["CHECKING", "LOAN"]}),
+        "account_number": fields.String(required=True),
+        "status": fields.String(required=True, metadata={"enum": ["ACTIVE", "CLOSED"]}),
+        "balance": fields.String(
+            required=True, metadata={"description": "Account balance (Decimal as string)"}
+        ),
+        "currency": fields.String(required=True, metadata={"example": "USD"}),
+    },
 )
 
 BalanceResponseSchema = create_response_schema(
-    'BalanceResponse',
+    "BalanceResponse",
     {
-        'account_id': fields.UUID(required=True),
-        'account_number': fields.String(required=True),
-        'balance': fields.String(required=True),
-        'currency': fields.String(required=True),
-        'status': fields.String(required=True),
-        'as_of': fields.DateTime(required=True)
-    }
+        "account_id": fields.UUID(required=True),
+        "account_number": fields.String(required=True),
+        "balance": fields.String(required=True),
+        "currency": fields.String(required=True),
+        "status": fields.String(required=True),
+        "as_of": fields.DateTime(required=True),
+    },
 )
 
 # Transaction responses
 TransactionResponseSchema = create_response_schema(
-    'TransactionResponse',
+    "TransactionResponse",
     {
-        'id': fields.UUID(required=True),
-        'account_id': fields.UUID(required=True),
-        'transaction_type': fields.String(required=True, metadata={
-            'enum': ['DEPOSIT', 'WITHDRAWAL', 'LOAN_DISBURSEMENT']
-        }),
-        'amount': fields.String(required=True),
-        'balance_after': fields.String(required=True),
-        'reference_number': fields.String(required=True),
-        'status': fields.String(required=True, metadata={
-            'enum': ['PENDING', 'COMPLETED', 'FAILED', 'REVERSED']
-        }),
-        'created_at': fields.DateTime(required=False)
-    }
+        "id": fields.UUID(required=True),
+        "account_id": fields.UUID(required=True),
+        "transaction_type": fields.String(
+            required=True, metadata={"enum": ["DEPOSIT", "WITHDRAWAL", "LOAN_DISBURSEMENT"]}
+        ),
+        "amount": fields.String(required=True),
+        "balance_after": fields.String(required=True),
+        "reference_number": fields.String(required=True),
+        "status": fields.String(
+            required=True, metadata={"enum": ["PENDING", "COMPLETED", "FAILED", "REVERSED"]}
+        ),
+        "created_at": fields.DateTime(required=False),
+    },
 )
 
 # Loan responses
 LoanResponseSchema = create_response_schema(
-    'LoanResponse',
+    "LoanResponse",
     {
-        'id': fields.UUID(required=True),
-        'customer_id': fields.UUID(required=True),
-        'application_number': fields.String(required=True),
-        'requested_amount': fields.String(required=True),
-        'status': fields.String(required=True, metadata={
-            'enum': ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'DISBURSED']
-        }),
-        'applied_at': fields.DateTime(required=True),
-        'reviewed_at': fields.DateTime(required=False),
-        'approved_amount': fields.String(required=False),
-        'interest_rate': fields.String(required=False)
-    }
+        "id": fields.UUID(required=True),
+        "customer_id": fields.UUID(required=True),
+        "application_number": fields.String(required=True),
+        "requested_amount": fields.String(required=True),
+        "status": fields.String(
+            required=True,
+            metadata={"enum": ["PENDING", "APPROVED", "REJECTED", "CANCELLED", "DISBURSED"]},
+        ),
+        "applied_at": fields.DateTime(required=True),
+        "reviewed_at": fields.DateTime(required=False),
+        "approved_amount": fields.String(required=False),
+        "interest_rate": fields.String(required=False),
+    },
 )
 
 # Generic responses
 MessageSchema = create_response_schema(
-    'Message',
-    {
-        'message': fields.String(required=True, metadata={
-            'example': 'Operation successful'
-        })
-    }
+    "Message",
+    {"message": fields.String(required=True, metadata={"example": "Operation successful"})},
 )
 
 AdminActionResponseSchema = create_response_schema(
-    'AdminActionResponse',
+    "AdminActionResponse",
     {
-        'message': fields.String(required=True),
-        'id': fields.UUID(required=True),
-        'status': fields.String(required=True)
-    }
+        "message": fields.String(required=True),
+        "id": fields.UUID(required=True),
+        "status": fields.String(required=True),
+    },
 )
 
 
@@ -233,34 +219,40 @@ AdminActionResponseSchema = create_response_schema(
 # LIST & PAGINATION SCHEMAS
 # ============================================================================
 
+
 class PaginationSchema(Schema):
     """Pagination metadata."""
-    total = fields.Integer(required=True, metadata={'description': 'Total number of items'})
-    limit = fields.Integer(required=True, metadata={'description': 'Items per page'})
-    offset = fields.Integer(required=True, metadata={'description': 'Offset from start'})
+
+    total = fields.Integer(required=True, metadata={"description": "Total number of items"})
+    limit = fields.Integer(required=True, metadata={"description": "Items per page"})
+    offset = fields.Integer(required=True, metadata={"description": "Offset from start"})
 
 
 class AccountListSchema(Schema):
     """List of accounts with data."""
-    data = fields.List(fields.Dict(), required=True, metadata={
-        'description': 'List of account objects'
-    })
+
+    data = fields.List(
+        fields.Dict(), required=True, metadata={"description": "List of account objects"}
+    )
 
 
 class TransactionListSchema(Schema):
     """List of transactions with pagination."""
+
     data = fields.List(fields.Dict(), required=True)
     pagination = fields.Nested(PaginationSchema, required=True)
 
 
 class LoanListSchema(Schema):
     """List of loan applications with pagination."""
+
     data = fields.List(fields.Dict(), required=True)
     pagination = fields.Nested(PaginationSchema, required=True)
 
 
 class CustomerListSchema(Schema):
     """List of customers with pagination."""
+
     data = fields.List(fields.Dict(), required=True)
     pagination = fields.Nested(PaginationSchema, required=True)
 
@@ -269,41 +261,36 @@ class CustomerListSchema(Schema):
 # QUERY PARAMETER SCHEMAS
 # ============================================================================
 
+
 class TransactionFilterSchema(Schema):
     """Query parameters for transaction filtering."""
+
     start_date = fields.Date(
-        required=False,
-        metadata={'description': 'Filter transactions from this date'}
+        required=False, metadata={"description": "Filter transactions from this date"}
     )
     end_date = fields.Date(
-        required=False,
-        metadata={'description': 'Filter transactions until this date'}
+        required=False, metadata={"description": "Filter transactions until this date"}
     )
     transaction_type = fields.String(
         required=False,
         metadata={
-            'description': 'Filter by transaction type',
-            'enum': ['DEPOSIT', 'WITHDRAWAL', 'LOAN_DISBURSEMENT']
-        }
+            "description": "Filter by transaction type",
+            "enum": ["DEPOSIT", "WITHDRAWAL", "LOAN_DISBURSEMENT"],
+        },
     )
-    limit = fields.Integer(
-        load_default=50,
-        metadata={'description': 'Number of items per page'}
-    )
-    offset = fields.Integer(
-        load_default=0,
-        metadata={'description': 'Offset from start'}
-    )
+    limit = fields.Integer(load_default=50, metadata={"description": "Number of items per page"})
+    offset = fields.Integer(load_default=0, metadata={"description": "Offset from start"})
 
 
 class LoanFilterSchema(Schema):
     """Query parameters for loan filtering."""
+
     status = fields.String(
         required=False,
         metadata={
-            'description': 'Filter by loan status',
-            'enum': ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'DISBURSED']
-        }
+            "description": "Filter by loan status",
+            "enum": ["PENDING", "APPROVED", "REJECTED", "CANCELLED", "DISBURSED"],
+        },
     )
     limit = fields.Integer(load_default=20)
     offset = fields.Integer(load_default=0)
@@ -311,12 +298,13 @@ class LoanFilterSchema(Schema):
 
 class CustomerFilterSchema(Schema):
     """Query parameters for customer filtering."""
+
     status = fields.String(
         required=False,
         metadata={
-            'description': 'Filter by customer status',
-            'enum': ['ACTIVE', 'SUSPENDED', 'CLOSED']
-        }
+            "description": "Filter by customer status",
+            "enum": ["ACTIVE", "SUSPENDED", "CLOSED"],
+        },
     )
     limit = fields.Integer(load_default=50)
     offset = fields.Integer(load_default=0)
@@ -324,9 +312,100 @@ class CustomerFilterSchema(Schema):
 
 class ReasonSchema(Schema):
     """Optional reason field for admin actions."""
-    reason = fields.String(
-        required=False,
-        metadata={'description': 'Reason for the action'}
+
+    reason = fields.String(required=False, metadata={"description": "Reason for the action"})
+
+
+# ============================================================================
+# Bank Operator Schemas (Admin)
+# ============================================================================
+
+
+class AccountBreakdownSchema(Schema):
+    """Schema for account breakdown statistics (simplified for MVP)."""
+
+    total_checking_accounts = fields.Integer(
+        required=True, metadata={"description": "Number of active checking accounts"}
+    )
+    total_loan_accounts = fields.Integer(
+        required=True, metadata={"description": "Number of active loan accounts"}
+    )
+    active_accounts = fields.Integer(
+        required=True, metadata={"description": "Total number of active accounts"}
+    )
+
+
+class BankFinancialStatusSchema(Schema):
+    """
+    Schema for bank financial status response.
+
+    Based on fractional reserve banking model:
+    - Bank starts with $250,000 capital
+    - Can use 25% of customer deposits for lending
+    - Must keep 75% of deposits liquid
+    """
+
+    bank_capital = fields.Decimal(
+        required=True,
+        as_string=True,
+        places=2,
+        metadata={
+            "description": "Bank's own capital (not customer money). Currently $250,000 static."
+        },
+    )
+    total_customer_deposits = fields.Decimal(
+        required=True,
+        as_string=True,
+        places=2,
+        metadata={
+            "description": "Total balance of all active checking accounts (money bank owes customers)"
+        },
+    )
+    usable_customer_deposits = fields.Decimal(
+        required=True,
+        as_string=True,
+        places=2,
+        metadata={
+            "description": "Portion of deposits available for lending (25% of total deposits)"
+        },
+    )
+    reserved_deposits = fields.Decimal(
+        required=True,
+        as_string=True,
+        places=2,
+        metadata={
+            "description": "Portion of deposits that must stay liquid for withdrawals (75% of total)"
+        },
+    )
+    total_loans_outstanding = fields.Decimal(
+        required=True,
+        as_string=True,
+        places=2,
+        metadata={
+            "description": "Total outstanding loan amounts (money customers owe bank, as positive value)"
+        },
+    )
+    available_for_lending = fields.Decimal(
+        required=True,
+        as_string=True,
+        places=2,
+        metadata={
+            "description": "Total funds available for new loans (capital + 25% deposits - loans). Can be negative if overextended."
+        },
+    )
+    is_overextended = fields.Boolean(
+        required=True,
+        metadata={
+            "description": "True if available_for_lending is negative (bank has lent more than reserves allow)"
+        },
+    )
+    account_breakdown = fields.Nested(
+        AccountBreakdownSchema,
+        required=True,
+        metadata={"description": "Breakdown of accounts by type"},
+    )
+    as_of = fields.DateTime(
+        required=True, metadata={"description": "Timestamp when this status was calculated (UTC)"}
     )
 
 
@@ -337,59 +416,57 @@ class ReasonSchema(Schema):
 # All schemas in one place for easy reference
 SCHEMAS = {
     # Request schemas
-    'LoginSchema': LoginSchema,
-    'RegisterSchema': RegisterSchema,
-    'PasswordChangeSchema': PasswordChangeSchema,
-    'CustomerCreateSchema': CustomerCreateSchema,
-    'CustomerUpdateSchema': CustomerUpdateSchema,
-    'AccountCreateSchema': AccountCreateSchema,
-    'DepositSchema': DepositSchema,
-    'WithdrawalSchema': WithdrawalSchema,
-    'LoanApplicationSchema': LoanApplicationSchema,
-    'LoanReviewSchema': LoanReviewSchema,
-    
+    "LoginSchema": LoginSchema,
+    "RegisterSchema": RegisterSchema,
+    "PasswordChangeSchema": PasswordChangeSchema,
+    "CustomerCreateSchema": CustomerCreateSchema,
+    "CustomerUpdateSchema": CustomerUpdateSchema,
+    "AccountCreateSchema": AccountCreateSchema,
+    "DepositSchema": DepositSchema,
+    "WithdrawalSchema": WithdrawalSchema,
+    "LoanApplicationSchema": LoanApplicationSchema,
+    "LoanReviewSchema": LoanReviewSchema,
     # Response schemas
-    'TokenResponseSchema': TokenResponseSchema,
-    'UserInfoSchema': UserInfoSchema,
-    'CustomerResponseSchema': CustomerResponseSchema,
-    'AccountResponseSchema': AccountResponseSchema,
-    'BalanceResponseSchema': BalanceResponseSchema,
-    'TransactionResponseSchema': TransactionResponseSchema,
-    'LoanResponseSchema': LoanResponseSchema,
-    'MessageSchema': MessageSchema,
-    'AdminActionResponseSchema': AdminActionResponseSchema,
-    
+    "TokenResponseSchema": TokenResponseSchema,
+    "UserInfoSchema": UserInfoSchema,
+    "CustomerResponseSchema": CustomerResponseSchema,
+    "AccountResponseSchema": AccountResponseSchema,
+    "BalanceResponseSchema": BalanceResponseSchema,
+    "TransactionResponseSchema": TransactionResponseSchema,
+    "LoanResponseSchema": LoanResponseSchema,
+    "MessageSchema": MessageSchema,
+    "AdminActionResponseSchema": AdminActionResponseSchema,
+    "AccountBreakdownSchema": AccountBreakdownSchema,
+    "BankFinancialStatusSchema": BankFinancialStatusSchema,
     # List schemas
-    'AccountListSchema': AccountListSchema,
-    'TransactionListSchema': TransactionListSchema,
-    'LoanListSchema': LoanListSchema,
-    'CustomerListSchema': CustomerListSchema,
-    
+    "AccountListSchema": AccountListSchema,
+    "TransactionListSchema": TransactionListSchema,
+    "LoanListSchema": LoanListSchema,
+    "CustomerListSchema": CustomerListSchema,
     # Filter schemas
-    'TransactionFilterSchema': TransactionFilterSchema,
-    'LoanFilterSchema': LoanFilterSchema,
-    'CustomerFilterSchema': CustomerFilterSchema,
-    'ReasonSchema': ReasonSchema,
+    "TransactionFilterSchema": TransactionFilterSchema,
+    "LoanFilterSchema": LoanFilterSchema,
+    "CustomerFilterSchema": CustomerFilterSchema,
+    "ReasonSchema": ReasonSchema,
 }
 
 
 def get_schema(name: str) -> Schema:
     """
     Get schema by name from registry.
-    
+
     Args:
         name: Schema name (e.g., 'LoginSchema')
-        
+
     Returns:
         Marshmallow Schema class
-        
+
     Raises:
         KeyError: If schema not found
-        
+
     Example:
         schema = get_schema('LoginSchema')
     """
     if name not in SCHEMAS:
         raise KeyError(f"Schema '{name}' not found in registry. Available: {list(SCHEMAS.keys())}")
     return SCHEMAS[name]
-
