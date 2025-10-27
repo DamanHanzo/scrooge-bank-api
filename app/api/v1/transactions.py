@@ -15,7 +15,8 @@ from app.services.account_service import AccountService
 from app.schemas.transaction import DepositRequest, WithdrawalRequest
 from app.exceptions import (
     NotFoundError, BusinessRuleViolationError,
-    InsufficientFundsError, TransactionLimitError
+    InsufficientFundsError, TransactionLimitError,
+    ValidationError
 )
 
 # Import all schemas from centralized registry
@@ -123,8 +124,15 @@ def create_withdrawal(args, account_id):
             'reference_number': transaction.reference_number,
             'status': transaction.status
         }, 201
-    except (InsufficientFundsError, TransactionLimitError, BusinessRuleViolationError) as e:
-        return jsonify({'error': {'code': e.__class__.__name__, 'message': str(e)}}), 422
+    except NotFoundError as e:
+        return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
+    except ValidationError as e:
+        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 422
+    except BusinessRuleViolationError as e:
+        return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
+    #TODO: Think through this design i.e. generic BusinessRuleViolationError or specific named exceptions
+    # except (InsufficientFundsError, TransactionLimitError) as e:
+    #     return jsonify({'error': {'code': e.__class__.__name__, 'message': str(e)}}), 422
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 

@@ -31,7 +31,6 @@ class TransactionService:
     
     # Business rule constants
     MAX_WITHDRAWAL_AMOUNT = Decimal('10000.00')
-    DAILY_WITHDRAWAL_LIMIT = Decimal('50000.00')
     
     def __init__(self, db: Session):
         """
@@ -141,7 +140,6 @@ class TransactionService:
         # Business rule validations
         self._validate_withdrawal_amount(withdrawal_data.amount)
         self._validate_sufficient_funds(account, withdrawal_data.amount)
-        self._validate_daily_withdrawal_limit(account_id, withdrawal_data.amount)
         
         # Calculate new balance
         new_balance = account.balance - withdrawal_data.amount
@@ -363,34 +361,6 @@ class TransactionService:
                 f"Insufficient funds. Available: ${account.balance}, Requested: ${amount}"
             )
     
-    def _validate_daily_withdrawal_limit(
-        self,
-        account_id: UUID,
-        amount: Decimal
-    ) -> None:
-        """Validate daily withdrawal limit."""
-        # Get today's date range
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = today_start + timedelta(days=1)
-        
-        # Sum today's withdrawals
-        total_today = self.db.query(
-            func.sum(Transaction.amount)
-        ).filter(
-            and_(
-                Transaction.account_id == account_id,
-                Transaction.transaction_type == 'WITHDRAWAL',
-                Transaction.status == 'COMPLETED',
-                Transaction.created_at >= today_start,
-                Transaction.created_at < today_end
-            )
-        ).scalar() or Decimal('0.00')
-        
-        if total_today + amount > self.DAILY_WITHDRAWAL_LIMIT:
-            raise TransactionLimitError(
-                f"Daily withdrawal limit exceeded. Limit: ${self.DAILY_WITHDRAWAL_LIMIT}, "
-                f"Already withdrawn today: ${total_today}, Requested: ${amount}"
-            )
     
     @staticmethod
     def _generate_reference_number() -> str:
