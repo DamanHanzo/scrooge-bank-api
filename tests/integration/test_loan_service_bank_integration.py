@@ -19,8 +19,9 @@ from app.schemas.loan import (
     LoanDisbursementRequest,
     ExternalAccountSchema,
 )
-from app.models import Account, LoanApplication
+from app.models import Account, LoanApplication, Customer
 from app.exceptions import BusinessRuleViolationError
+from datetime import date
 
 
 class TestLoanServiceBankIntegration:
@@ -42,6 +43,7 @@ class TestLoanServiceBankIntegration:
         Business Rule: Loans cannot overextend bank
         """
         # Arrange - Setup bank with sufficient funds
+        # Use sample_customer for existing accounts (to establish bank balance)
         # Create checking account with $100k
         checking = Account(
             customer_id=sample_customer.id,
@@ -65,13 +67,29 @@ class TestLoanServiceBankIntegration:
         db_session.add_all([checking, existing_loan_account])
         db_session.commit()
 
+        # Create separate loan applicant customer (must have NO active accounts)
+        loan_applicant = Customer(
+            email="loanapplicant1@example.com",
+            first_name="Loan",
+            last_name="Applicant",
+            date_of_birth=date(1985, 5, 15),
+            phone="+1-555-1111",
+            address_line_1="111 Loan St",
+            city="Test City",
+            state="CA",
+            zip_code="11111",
+            status="ACTIVE"
+        )
+        db_session.add(loan_applicant)
+        db_session.commit()
+
         # Bank available: $250k + $25k - $200k = $75k
         # Approving $50k loan would leave $25k (still positive)
 
         # Create loan application
         loan_service = LoanService(db_session)
         application_data = LoanApplicationRequest(
-            customer_id=sample_customer.id,
+            customer_id=loan_applicant.id,
             requested_amount=Decimal("50000.00"),
             purpose="Business expansion",
             term_months=24,
@@ -114,6 +132,7 @@ class TestLoanServiceBankIntegration:
         Business Rule: Loans cannot overextend bank
         """
         # Arrange - Setup bank with insufficient funds
+        # Use sample_customer for existing accounts (to establish bank balance)
         # Create checking account with $100k
         checking = Account(
             customer_id=sample_customer.id,
@@ -137,13 +156,29 @@ class TestLoanServiceBankIntegration:
         db_session.add_all([checking, existing_loan_account])
         db_session.commit()
 
+        # Create separate loan applicant customer (must have NO active accounts)
+        loan_applicant = Customer(
+            email="loanapplicant2@example.com",
+            first_name="Second",
+            last_name="Applicant",
+            date_of_birth=date(1990, 10, 20),
+            phone="+1-555-2222",
+            address_line_1="222 Loan Ave",
+            city="Test City",
+            state="CA",
+            zip_code="22222",
+            status="ACTIVE"
+        )
+        db_session.add(loan_applicant)
+        db_session.commit()
+
         # Bank available: $250k + $25k - $270k = $5k
         # Approving $10k loan would result in -$5k (overextended!)
 
         # Create loan application
         loan_service = LoanService(db_session)
         application_data = LoanApplicationRequest(
-            customer_id=sample_customer.id,
+            customer_id=loan_applicant.id,
             requested_amount=Decimal("10000.00"),
             purpose="Home renovation",
             term_months=36,

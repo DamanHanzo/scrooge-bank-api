@@ -22,7 +22,7 @@ class Transaction(BaseModel):
     
     Attributes:
         account_id: Foreign key to account
-        transaction_type: Type of transaction (DEPOSIT, WITHDRAWAL, LOAN_DISBURSEMENT)
+        transaction_type: Type of transaction (DEPOSIT, WITHDRAWAL, LOAN_DISBURSEMENT, LOAN_PAYMENT)
         amount: Transaction amount (always positive)
         currency: Currency code
         balance_after: Account balance after transaction
@@ -107,7 +107,7 @@ class Transaction(BaseModel):
             name='chk_amount_positive'
         ),
         CheckConstraint(
-            "transaction_type IN ('DEPOSIT', 'WITHDRAWAL', 'LOAN_DISBURSEMENT')",
+            "transaction_type IN ('DEPOSIT', 'WITHDRAWAL', 'LOAN_DISBURSEMENT', 'LOAN_PAYMENT')",
             name='chk_transaction_type'
         ),
         CheckConstraint(

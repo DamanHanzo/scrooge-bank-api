@@ -161,3 +161,28 @@ class LoanApplicationResponse(BaseModel):
         }
     }
 
+
+class LoanPaymentRequest(BaseModel):
+    """Schema for loan payment request."""
+
+    amount: Decimal = Field(
+        ...,
+        gt=0,
+        decimal_places=2,
+        description="Payment amount (must be positive)"
+    )
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Optional payment description"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "amount": 1000.00,
+                "description": "Monthly payment"
+            }
+        }
+    }
+

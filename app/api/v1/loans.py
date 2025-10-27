@@ -9,10 +9,12 @@ from flask_smorest import Blueprint
 from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from pydantic import ValidationError as PydanticValidationError
+from decimal import Decimal
 
 from app.models import db
 from app.services.loan_service import LoanService
-from app.schemas.loan import LoanApplicationRequest
+from app.services.account_service import AccountService
+from app.schemas.loan import LoanApplicationRequest, LoanPaymentRequest
 from app.exceptions import NotFoundError, ValidationError, BusinessRuleViolationError
 
 # Import all schemas from centralized registry
@@ -21,7 +23,9 @@ from app.api.schemas import (
     LoanResponseSchema,
     LoanListSchema,
     LoanFilterSchema,
-    MessageSchema
+    MessageSchema,
+    TransactionResponseSchema,
+    LoanPaymentSchema
 )
 
 # ============================================================================
@@ -199,6 +203,69 @@ def cancel_loan_application(application_id):
         return {'message': 'Loan application cancelled successfully'}
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
+    except BusinessRuleViolationError as e:
+        return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
+    except Exception as e:
+        return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
+
+
+@loans_bp.route('/loan-accounts/<uuid:loan_account_id>/payments', methods=['POST'])
+@loans_bp.arguments(LoanPaymentSchema, description="Loan payment details", location='json')
+@loans_bp.response(201, TransactionResponseSchema, description="Payment processed")
+@loans_bp.alt_response(403, description="Not authorized")
+@loans_bp.alt_response(404, description="Loan account not found")
+@loans_bp.alt_response(422, description="Business rule violation")
+@jwt_required()
+def make_loan_payment(args, loan_account_id):
+    """
+    Make a payment on a loan account.
+
+    Customers can only make payments on their own loan accounts.
+    Reduces the loan balance (debt) by the payment amount.
+    Automatically closes the loan account when fully paid off.
+    """
+    try:
+        # Validate and parse payment request
+        payment_request = LoanPaymentRequest(**args)
+
+        # Get loan account and verify ownership
+        account_service = AccountService(db.session)
+        loan_account = account_service.get_account(loan_account_id)
+
+        # Authorization: customers can only pay their own loans
+        claims = get_jwt()
+        user_role = claims.get('role')
+        user_customer_id = claims.get('customer_id')
+
+        if user_role == 'CUSTOMER' and str(user_customer_id) != str(loan_account.customer_id):
+            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
+
+        # Process payment
+        loan_service = LoanService(db.session)
+        transaction = loan_service.make_loan_payment(
+            loan_account_id=loan_account_id,
+            payment_amount=payment_request.amount,
+            description=payment_request.description
+        )
+
+        return {
+            'id': str(transaction.id),
+            'account_id': str(transaction.account_id),
+            'transaction_type': transaction.transaction_type,
+            'amount': str(transaction.amount),
+            'balance_after': str(transaction.balance_after),
+            'reference_number': transaction.reference_number,
+            'status': transaction.status,
+            'description': transaction.description,
+            'processed_at': transaction.processed_at.isoformat() if transaction.processed_at else None
+        }, 201
+
+    except PydanticValidationError as e:
+        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
+    except NotFoundError as e:
+        return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
+    except ValidationError as e:
+        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 422
     except BusinessRuleViolationError as e:
         return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
     except Exception as e:

@@ -5,6 +5,7 @@ Business logic for loan application and management operations.
 """
 
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional, Tuple
 from uuid import UUID
 import random
@@ -68,6 +69,20 @@ class LoanService:
 
         if existing_pending:
             raise BusinessRuleViolationError("Customer already has a pending loan application")
+
+        # Check for existing active accounts (single account rule)
+        # Per requirements: Customer can ONLY apply if they have NO active accounts
+        existing_account = self.db.query(Account).filter(
+            Account.customer_id == application_data.customer_id,
+            Account.status == 'ACTIVE'
+        ).first()
+
+        if existing_account:
+            raise BusinessRuleViolationError(
+                f"Customer already has an active {existing_account.account_type.lower()} account "
+                f"(Account #: {existing_account.account_number}). "
+                f"Customers must close all existing accounts before applying for a loan."
+            )
 
         # Generate application number
         application_number = self._generate_application_number()
@@ -367,6 +382,104 @@ class LoanService:
         except IntegrityError as e:
             self.db.rollback()
             raise ValidationError(f"Error cancelling application: {str(e)}")
+
+    def make_loan_payment(
+        self,
+        loan_account_id: UUID,
+        payment_amount: Decimal,
+        description: Optional[str] = None
+    ) -> Transaction:
+        """
+        Make a payment on a loan.
+
+        Reduces loan balance (makes it less negative).
+        Automatically closes loan account when fully paid off (balance = 0).
+
+        Args:
+            loan_account_id: UUID of the LOAN account
+            payment_amount: Payment amount (must be positive)
+            description: Optional payment description
+
+        Returns:
+            Transaction record
+
+        Raises:
+            NotFoundError: If loan account not found
+            ValidationError: If validation fails (amount <= 0, exceeds debt)
+            BusinessRuleViolationError: If account is not a loan or is closed
+        """
+        # Get and validate loan account
+        loan_account = self.db.query(Account).filter(
+            Account.id == loan_account_id
+        ).first()
+
+        if not loan_account:
+            raise NotFoundError(f"Loan account with ID {loan_account_id} not found")
+
+        if loan_account.account_type != 'LOAN':
+            raise BusinessRuleViolationError(
+                f"Account is not a loan account. Type: {loan_account.account_type}"
+            )
+
+        if loan_account.status == 'CLOSED':
+            raise BusinessRuleViolationError("Cannot make payment on closed loan account")
+
+        # Validate payment amount
+        if payment_amount <= 0:
+            raise ValidationError("Payment amount must be positive")
+
+        # Get current loan balance (stored as negative)
+        current_balance = loan_account.balance
+        outstanding_debt = abs(current_balance)
+
+        if payment_amount > outstanding_debt:
+            raise ValidationError(
+                f"Payment amount ${payment_amount} exceeds outstanding debt ${outstanding_debt}"
+            )
+
+        # Calculate new balance (less negative = less debt)
+        # Example: -5000 + 1000 = -4000 (debt reduced from $5000 to $4000)
+        new_balance = current_balance + payment_amount
+
+        # Generate reference number
+        reference_number = self._generate_reference_number()
+
+        # Create payment transaction
+        payment_transaction = Transaction(
+            account_id=loan_account_id,
+            transaction_type='LOAN_PAYMENT',
+            amount=payment_amount,
+            currency=loan_account.currency,
+            balance_after=new_balance,
+            description=description or f"Loan payment - {loan_account.account_number}",
+            reference_number=reference_number,
+            status='PENDING'
+        )
+
+        try:
+            # Add transaction
+            self.db.add(payment_transaction)
+
+            # Update loan account balance
+            loan_account.balance = new_balance
+
+            # If loan is fully paid off, close the account
+            if new_balance == Decimal('0.00'):
+                loan_account.status = 'CLOSED'
+                payment_transaction.description += " - LOAN PAID IN FULL"
+
+            # Mark transaction as completed
+            payment_transaction.status = 'COMPLETED'
+            payment_transaction.processed_at = datetime.utcnow()
+
+            self.db.commit()
+            self.db.refresh(payment_transaction)
+
+            return payment_transaction
+
+        except IntegrityError as e:
+            self.db.rollback()
+            raise ValidationError(f"Error processing loan payment: {str(e)}")
 
     @staticmethod
     def _generate_application_number() -> str:

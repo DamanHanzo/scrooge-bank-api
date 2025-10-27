@@ -39,7 +39,7 @@ from app.schemas.account import AccountCreateRequest
 from app.schemas.transaction import DepositRequest, WithdrawalRequest
 
 # Loan schemas
-from app.schemas.loan import LoanApplicationRequest, LoanReviewRequest
+from app.schemas.loan import LoanApplicationRequest, LoanReviewRequest, LoanPaymentRequest
 
 
 # ============================================================================
@@ -65,6 +65,7 @@ WithdrawalSchema = pydantic_to_marshmallow(WithdrawalRequest)
 # Loan
 LoanApplicationSchema = pydantic_to_marshmallow(LoanApplicationRequest)
 LoanReviewSchema = pydantic_to_marshmallow(LoanReviewRequest)
+LoanPaymentSchema = pydantic_to_marshmallow(LoanPaymentRequest)
 
 
 # ============================================================================
@@ -461,6 +462,7 @@ SCHEMAS = {
     "WithdrawalSchema": WithdrawalSchema,
     "LoanApplicationSchema": LoanApplicationSchema,
     "LoanReviewSchema": LoanReviewSchema,
+    "LoanPaymentSchema": LoanPaymentSchema,
     # Response schemas
     "TokenResponseSchema": TokenResponseSchema,
     "UserInfoSchema": UserInfoSchema,
