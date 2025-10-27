@@ -190,10 +190,45 @@ class TestLoanServiceBankIntegration:
         - Expected: Disbursement succeeds
 
         Business Rule: Re-check bank funds at disbursement time
+        Note: Uses separate customer for bank setup accounts (single account rule)
         """
-        # Arrange - Setup bank with sufficient funds
+        # Arrange - Create separate customers for bank setup
+        # (to respect single account rule: one customer per account)
+        from app.models import Customer
+        from datetime import date
+        
+        customer_with_checking = Customer(
+            email="checking_customer@example.com",
+            first_name="Checking",
+            last_name="Customer",
+            date_of_birth=date(1985, 5, 15),
+            phone="+1-555-8888",
+            address_line_1="888 Checking St",
+            city="City",
+            state="CA",
+            zip_code="88888",
+            status="ACTIVE"
+        )
+        
+        customer_with_loan = Customer(
+            email="loan_customer@example.com",
+            first_name="Loan",
+            last_name="Customer",
+            date_of_birth=date(1986, 6, 16),
+            phone="+1-555-9999",
+            address_line_1="999 Loan St",
+            city="City",
+            state="CA",
+            zip_code="99999",
+            status="ACTIVE"
+        )
+        
+        db_session.add_all([customer_with_checking, customer_with_loan])
+        db_session.commit()
+        
+        # Setup bank with sufficient funds using separate customers
         checking = Account(
-            customer_id=sample_customer.id,
+            customer_id=customer_with_checking.id,  # Customer 1
             account_type="CHECKING",
             account_number="CHK-DISBURSE-1",
             status="ACTIVE",
@@ -202,7 +237,7 @@ class TestLoanServiceBankIntegration:
         )
 
         existing_loan = Account(
-            customer_id=sample_customer.id,
+            customer_id=customer_with_loan.id,  # Customer 2
             account_type="LOAN",
             account_number="LOAN-EXISTING-3",
             status="ACTIVE",
@@ -263,10 +298,44 @@ class TestLoanServiceBankIntegration:
         - Expected: BusinessRuleViolationError raised
 
         Business Rule: Re-check bank funds at disbursement (time-of-use check)
+        Note: Uses separate customers for bank setup accounts (single account rule)
         """
-        # Arrange - Setup bank with sufficient funds initially
+        # Arrange - Create separate customers for bank setup
+        from app.models import Customer
+        from datetime import date
+        
+        customer_with_checking = Customer(
+            email="checking_customer2@example.com",
+            first_name="Checking2",
+            last_name="Customer",
+            date_of_birth=date(1987, 7, 17),
+            phone="+1-555-7777",
+            address_line_1="777 Checking St",
+            city="City",
+            state="CA",
+            zip_code="77777",
+            status="ACTIVE"
+        )
+        
+        customer_with_loan = Customer(
+            email="loan_customer2@example.com",
+            first_name="Loan2",
+            last_name="Customer",
+            date_of_birth=date(1988, 8, 18),
+            phone="+1-555-6666",
+            address_line_1="666 Loan St",
+            city="City",
+            state="CA",
+            zip_code="66666",
+            status="ACTIVE"
+        )
+        
+        db_session.add_all([customer_with_checking, customer_with_loan])
+        db_session.commit()
+        
+        # Setup bank with sufficient funds initially using separate customers
         checking = Account(
-            customer_id=sample_customer.id,
+            customer_id=customer_with_checking.id,  # Customer 1
             account_type="CHECKING",
             account_number="CHK-DISBURSE-2",
             status="ACTIVE",
@@ -275,7 +344,7 @@ class TestLoanServiceBankIntegration:
         )
 
         existing_loan = Account(
-            customer_id=sample_customer.id,
+            customer_id=customer_with_loan.id,  # Customer 2
             account_type="LOAN",
             account_number="LOAN-EXISTING-4",
             status="ACTIVE",
