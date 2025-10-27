@@ -275,6 +275,20 @@ class LoanService:
                 f"Cannot disburse loan: {reason}. Bank cash position may have changed since approval."
             )
 
+        # Check for existing active accounts (single account rule)
+        # Per requirements: Customer must close CHECKING account before getting loan
+        existing_account = self.db.query(Account).filter(
+            Account.customer_id == application.customer_id,
+            Account.status == 'ACTIVE'
+        ).first()
+        
+        if existing_account:
+            raise BusinessRuleViolationError(
+                f"Customer already has an active {existing_account.account_type.lower()} account "
+                f"(Account #: {existing_account.account_number}). "
+                f"Only one account per customer is allowed. Please close existing account before loan disbursement."
+            )
+
         # Create loan account
         loan_account = Account(
             customer_id=application.customer_id,
