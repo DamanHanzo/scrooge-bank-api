@@ -13,8 +13,13 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class AccountCreateRequest(BaseModel):
-    """Schema for creating a new account."""
-    customer_id: UUID = Field(..., description="Customer ID")
+    """
+    Schema for creating a new account.
+    
+    Note: customer_id is extracted from JWT token claims and not included in request body.
+    Customers can only create accounts for themselves.
+    Admins can create accounts for any customer (customer_id provided via endpoint parameter).
+    """
     account_type: Literal['CHECKING', 'LOAN'] = Field(..., description="Account type")
     initial_deposit: Optional[Decimal] = Field(
         None,
@@ -35,7 +40,6 @@ class AccountCreateRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "customer_id": "550e8400-e29b-41d4-a716-446655440000",
                 "account_type": "CHECKING",
                 "initial_deposit": 1000.00,
                 "currency": "USD"

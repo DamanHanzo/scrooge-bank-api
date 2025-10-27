@@ -228,12 +228,47 @@ class PaginationSchema(Schema):
     offset = fields.Integer(required=True, metadata={"description": "Offset from start"})
 
 
+class AccountFilterSchema(Schema):
+    """Schema for filtering accounts (query parameters)."""
+    
+    customer_id = fields.UUID(
+        required=False,
+        metadata={"description": "Filter by customer ID (admin only)"}
+    )
+    account_type = fields.String(
+        required=False,
+        validate=lambda x: x in ['CHECKING', 'LOAN'],
+        metadata={"description": "Filter by account type", "enum": ["CHECKING", "LOAN"]}
+    )
+    status = fields.String(
+        required=False,
+        validate=lambda x: x in ['ACTIVE', 'CLOSED'],
+        metadata={"description": "Filter by account status", "enum": ["ACTIVE", "CLOSED"]}
+    )
+
+
+class AccountListItemSchema(Schema):
+    """Schema for individual account in list."""
+    
+    id = fields.UUID(required=True)
+    customer_id = fields.UUID(required=True)
+    account_type = fields.String(required=True, metadata={"enum": ["CHECKING", "LOAN"]})
+    account_number = fields.String(required=True)
+    status = fields.String(required=True, metadata={"enum": ["ACTIVE", "CLOSED"]})
+    balance = fields.String(required=True, metadata={"description": "Balance as string"})
+    currency = fields.String(required=True)
+    created_at = fields.DateTime(required=True)
+
+
 class AccountListSchema(Schema):
-    """List of accounts with data."""
+    """List of accounts with total count."""
 
     data = fields.List(
-        fields.Dict(), required=True, metadata={"description": "List of account objects"}
+        fields.Nested(AccountListItemSchema),
+        required=True,
+        metadata={"description": "List of account objects"}
     )
+    total = fields.Integer(required=True, metadata={"description": "Total number of accounts"})
 
 
 class TransactionListSchema(Schema):
@@ -444,10 +479,13 @@ SCHEMAS = {
     "LoanListSchema": LoanListSchema,
     "CustomerListSchema": CustomerListSchema,
     # Filter schemas
+    "AccountFilterSchema": AccountFilterSchema,
     "TransactionFilterSchema": TransactionFilterSchema,
     "LoanFilterSchema": LoanFilterSchema,
     "CustomerFilterSchema": CustomerFilterSchema,
     "ReasonSchema": ReasonSchema,
+    # Item schemas
+    "AccountListItemSchema": AccountListItemSchema,
 }
 
 
