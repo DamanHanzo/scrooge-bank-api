@@ -74,7 +74,7 @@ def submit_loan_application(args):
             'application_number': application.application_number,
             'requested_amount': str(application.requested_amount),
             'status': application.status,
-            'applied_at': application.applied_at.isoformat()
+            'applied_at': application.applied_at  # Let Marshmallow serialize the datetime
         }, 201
     except (PydanticValidationError, ValidationError) as e:
         return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
@@ -107,15 +107,9 @@ def get_loan_application(application_id):
         
         if user_role == 'CUSTOMER' and str(user_customer_id) != str(application.customer_id):
             return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
-        
-        return {
-            'id': str(application.id),
-            'customer_id': str(application.customer_id),
-            'application_number': application.application_number,
-            'requested_amount': str(application.requested_amount),
-            'status': application.status,
-            'applied_at': application.applied_at.isoformat()
-        }
+
+        # Return full application - let Marshmallow handle serialization
+        return application
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
     except Exception as e:

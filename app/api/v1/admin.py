@@ -13,13 +13,14 @@ from app.models import db
 from app.services.customer_service import CustomerService
 from app.services.loan_service import LoanService
 from app.services.bank_service import BankService
-from app.schemas.loan import LoanReviewRequest, LoanApplicationStatusUpdateRequest
+from app.schemas.loan import LoanReviewRequest, LoanApplicationStatusUpdateRequest, LoanDisbursementRequest
 from app.schemas.customer import CustomerStatusUpdateRequest
 from app.exceptions import NotFoundError, BusinessRuleViolationError, AuthorizationError
 
 # Import all schemas from centralized registry
 from app.api.schemas import (
     LoanApplicationStatusUpdateSchema,
+    LoanDisbursementSchema,
     CustomerListSchema,
     CustomerFilterSchema,
     CustomerStatusUpdateSchema,
@@ -187,6 +188,44 @@ def update_loan_application_status_admin(args, application_id):
 
         return {
             "message": f"Loan application {data.status.lower()}",
+            "id": str(application.id),
+            "status": application.status,
+        }
+    except AuthorizationError as e:
+        return jsonify({"error": {"code": "FORBIDDEN", "message": str(e)}}), 403
+    except NotFoundError as e:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": str(e)}}), 404
+    except BusinessRuleViolationError as e:
+        return jsonify({"error": {"code": "BUSINESS_RULE_VIOLATION", "message": str(e)}}), 422
+    except Exception as e:
+        return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
+
+
+@admin_bp.route("/loan-applications/<uuid:application_id>/disburse", methods=["POST"])
+@admin_bp.arguments(LoanDisbursementSchema, description="Disbursement confirmation")
+@admin_bp.response(200, AdminActionResponseSchema, description="Loan disbursed successfully")
+@admin_bp.alt_response(403, description="Admin access required")
+@admin_bp.alt_response(404, description="Loan application not found")
+@admin_bp.alt_response(422, description="Business rule violation")
+@admin_bp.doc(operationId="disburseLoan")
+@jwt_required()
+def disburse_loan_application(args, application_id):
+    """
+    Disburse an approved loan (Admin only).
+
+    Creates loan account and transfers funds to customer's external account.
+    Re-validates bank funds and customer eligibility at disbursement time.
+    """
+    try:
+        require_admin()
+
+        data = LoanDisbursementRequest(**args)
+        service = LoanService(db.session)
+
+        application = service.disburse_loan(application_id, data)
+
+        return {
+            "message": "Loan disbursed successfully",
             "id": str(application.id),
             "status": application.status,
         }

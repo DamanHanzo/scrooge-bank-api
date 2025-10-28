@@ -287,7 +287,7 @@ def get_account_balance(account_id):
             'balance': str(balance_info['balance']),
             'currency': balance_info['currency'],
             'status': balance_info['status'],
-            'as_of': balance_info['as_of'].isoformat()
+            'as_of': balance_info['as_of']  # Let Marshmallow serialize the datetime
         }
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
