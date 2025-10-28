@@ -9,7 +9,6 @@ from typing import Type, Dict, Any, get_type_hints, get_origin, get_args
 from datetime import datetime, date
 from decimal import Decimal
 from uuid import UUID
-from enum import Enum
 
 from marshmallow import Schema, fields, validate
 from pydantic import BaseModel
