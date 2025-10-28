@@ -16,7 +16,10 @@ from pydantic import BaseModel
 
 class PydanticToMarshmallow:
     """Convert Pydantic models to Marshmallow schemas."""
-    
+
+    # Cache of already-converted schemas to avoid duplicate registrations
+    _schema_cache: Dict[Type[BaseModel], Type[Schema]] = {}
+
     # Type mapping from Python/Pydantic types to Marshmallow fields
     TYPE_MAPPING = {
         str: fields.String,
@@ -49,6 +52,10 @@ class PydanticToMarshmallow:
             LoginSchema = PydanticToMarshmallow.convert(LoginRequest)
             ```
         """
+        # Check cache first to avoid duplicate registrations
+        if pydantic_model in cls._schema_cache:
+            return cls._schema_cache[pydantic_model]
+
         if name is None:
             name = f"{pydantic_model.__name__}Schema"
 
@@ -81,6 +88,9 @@ class PydanticToMarshmallow:
 
         # Create Marshmallow schema class dynamically
         schema_class = type(name, (Schema,), ma_fields)
+
+        # Cache the schema to avoid duplicate registrations
+        cls._schema_cache[pydantic_model] = schema_class
 
         return schema_class
     
