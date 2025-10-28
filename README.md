@@ -52,6 +52,161 @@ This project implements a complete banking API based on the following user stori
 - ✅ As the bank operator, I should be able to see how much money total we currently have on hand
 - ✅ As the bank operator, user withdrawals are allowed to put the bank into debt, but loans are not
 
+## Loan Application Process
+
+### Overview
+
+The loan application process follows a **three-step workflow** that separates application, approval, and disbursement for better risk management and TOCTOU (Time-of-Check-Time-of-Use) protection.
+
+### Process Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         LOAN APPLICATION WORKFLOW                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    CUSTOMER ACTIONS                    ADMIN ACTIONS                 RESULT
+    ════════════════                    ═════════════                 ══════
+
+┌──────────────────┐
+│ 1. APPLY FOR     │
+│    LOAN          │                                              ┌──────────┐
+│                  │──────────────────────────────────────────────▶│ PENDING  │
+│ POST /v1/loan-   │                                              └──────────┘
+│ applications     │
+└──────────────────┘
+         │
+         │ ⚠️  VALIDATION: Single Account Rule
+         │    ❌ Customer must have NO active accounts
+         │    ❌ Checking account exists? → REJECTED (422)
+         │    ❌ Loan account exists? → REJECTED (422)
+         │    ✅ No active accounts? → Application submitted
+         │
+         ▼
+                                   ┌──────────────────┐
+                                   │ 2. REVIEW &      │
+                                   │    APPROVE       │          ┌──────────┐
+                                   │                  │──────────▶│ APPROVED │
+                                   │ PATCH /v1/admin/ │          └──────────┘
+                                   │ loan-applications│
+                                   │ /{id}            │
+                                   └──────────────────┘
+                                            │
+                                            │ ✅ Sets terms:
+                                            │    - Approved amount
+                                            │    - Interest rate
+                                            │    - Term (months)
+                                            │
+                                            ▼
+                                   ┌──────────────────┐
+                                   │ 3. DISBURSE      │
+                                   │    LOAN          │          ┌──────────┐
+                                   │                  │──────────▶│ DISBURSED│
+                                   │ POST /v1/admin/  │          └──────────┘
+                                   │ loan-applications│
+                                   │ /{id}/disburse   │
+                                   └──────────────────┘
+                                            │
+                                            │ 🔒 RE-VALIDATION at disbursement:
+                                            │    ❌ Bank funds insufficient? → REJECTED (422)
+                                            │    ❌ Customer opened account? → REJECTED (422)
+                                            │    ✅ All checks pass? → Loan account created
+                                            │
+                                            ▼
+                                   ┌──────────────────┐
+                                   │ ✅ LOAN ACCOUNT  │
+                                   │    CREATED       │
+                                   │                  │
+                                   │ • Type: LOAN     │
+                                   │ • Balance: -$X   │
+                                   │ • Status: ACTIVE │
+                                   └──────────────────┘
+                                            │
+                                            ▼
+┌──────────────────┐
+│ 4. MAKE LOAN     │
+│    PAYMENTS      │
+│                  │
+│ POST /v1/        │
+│ loan-payments    │
+└──────────────────┘
+```
+
+### Single Account Business Rule
+
+**Rule:** A customer can only have **ONE active account** at a time (regardless of type).
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                    SINGLE ACCOUNT RULE ENFORCEMENT                      │
+└────────────────────────────────────────────────────────────────────────┘
+
+SCENARIO 1: Customer tries to apply for loan with active checking account
+───────────────────────────────────────────────────────────────────────────
+Customer Status: Has ACTIVE checking account
+Action: POST /v1/loan-applications
+Result: ❌ REJECTED (422)
+Message: "Customer already has an active checking account.
+          Customers must close all existing accounts before applying for a loan."
+
+SCENARIO 2: Customer tries to open checking account with active loan
+──────────��────────────────────────────────────────────────────────────────
+Customer Status: Has ACTIVE loan account
+Action: POST /v1/accounts (account_type=CHECKING)
+Result: ❌ REJECTED (422)
+Message: "Customer already has an active loan account.
+          Only one account per customer is allowed."
+
+SCENARIO 3: Customer closes checking account, then applies for loan
+───────────────────────────────────────────────────────────────────────────
+Customer Status: Had checking account → closed it (status=CLOSED)
+Action: POST /v1/loan-applications
+Result: ✅ SUCCESS (201) - Application submitted
+Reason: CLOSED accounts don't count toward the single account limit
+
+SCENARIO 4: Customer pays off loan completely
+───────────────────────────────────────────────────────────────────────────
+Customer Status: Loan balance reaches $0.00
+Action: PATCH /v1/accounts/{id} (status=CLOSED)
+Result: ✅ Loan account closed, customer can now open checking account
+```
+
+### Why Separate Approval and Disbursement?
+
+**Problem:** Time-of-Check-Time-of-Use (TOCTOU) Race Condition
+
+```
+Without Separation:
+──────────────────
+Monday 9am:  Admin approves $50k loan (bank has $75k available) ✅
+Monday 10am: Multiple withdrawals → bank now has $5k available ⚠️
+Monday 11am: System auto-disburses $50k → BANK OVERDRAFT! ❌
+
+With Separation:
+────────────────
+Monday 9am:  Admin approves $50k loan (bank has $75k available) ✅
+Monday 10am: Multiple withdrawals → bank now has $5k available ⚠️
+Monday 11am: Admin clicks "Disburse" → RE-CHECK bank funds
+             → Insufficient funds! → DISBURSEMENT BLOCKED ✅
+             → Loan stays in APPROVED status, waiting for funds
+```
+
+**Benefits:**
+
+- **Risk Management**: Admin can review terms before committing funds
+- **TOCTOU Protection**: Re-validates bank funds at disbursement time
+- **Compliance**: Matches real banking workflows (approval ≠ disbursement)
+- **Flexibility**: Admin can approve today, disburse tomorrow
+
+### API Endpoints
+
+| Step | Endpoint | Method | Who | Description |
+|------|----------|--------|-----|-------------|
+| 1 | `/v1/loan-applications` | POST | Customer | Submit loan application |
+| 2 | `/v1/admin/loan-applications/{id}` | PATCH | Admin | Approve/reject application |
+| 3 | `/v1/admin/loan-applications/{id}/disburse` | POST | Admin | Disburse approved loan |
+| 4 | `/v1/loan-payments` | POST | Customer | Make loan payment |
+
 ### Bonus Feature: Transaction History
 
 **User Story:**
