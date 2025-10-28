@@ -42,7 +42,35 @@ class Config:
     # API Configuration
     API_TITLE = os.environ.get("API_TITLE", "Bank API")
     API_VERSION = os.environ.get("API_VERSION", "v1")
-    API_DESCRIPTION = os.environ.get("API_DESCRIPTION", "RESTful Banking API")
+    API_DESCRIPTION = os.environ.get(
+        "API_DESCRIPTION",
+        """
+# Scrooge Banking API
+
+A comprehensive banking API providing account management, transactions, and loan processing capabilities.
+
+## Authentication
+
+All endpoints (except `/v1/auth/login` and `/v1/auth/register`) require JWT authentication.
+
+To authenticate:
+1. Login via `/v1/auth/login` to receive an access token
+2. Include the token in the `Authorization` header: `Bearer <token>`
+3. Tokens expire after 1 hour - use `/v1/auth/refresh` to get a new token
+
+## Features
+
+- **Account Management**: Create and manage checking and loan accounts
+- **Transactions**: Deposits, withdrawals with validation and limits
+- **Loans**: Apply for loans, track applications, make payments
+- **Admin Operations**: Customer management, loan approvals, financial reporting
+
+## Rate Limiting
+
+- 100 requests per minute per user
+- 1000 requests per hour per user
+""",
+    )
     OPENAPI_VERSION = "3.0.2"
     OPENAPI_URL_PREFIX = "/api"
     OPENAPI_SWAGGER_UI_PATH = "/docs"
@@ -53,6 +81,39 @@ class Config:
     # Flask-SMOREST Configuration
     API_SPEC_OPTIONS = {
         "x-internal-id": "1",
+        # Security scheme for JWT authentication
+        "security": [{"bearerAuth": []}],
+        "components": {
+            "securitySchemes": {
+                "bearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                    "description": "JWT Authorization header using the Bearer scheme. "
+                    "Example: 'Authorization: Bearer {token}'",
+                }
+            }
+        },
+        # Server URLs
+        "servers": [
+            {
+                "url": os.environ.get("API_SERVER_URL", "http://localhost:5025"),
+                "description": "Development server",
+            }
+        ],
+        # Contact and license information
+        "info": {
+            "contact": {
+                "name": "API Support",
+                "email": os.environ.get("API_CONTACT_EMAIL", "api-support@scoorge-bank.com"),
+                "url": os.environ.get("API_CONTACT_URL", "https://scoorge-bank.com/support"),
+            },
+            "license": {
+                "name": os.environ.get("API_LICENSE_NAME", "Proprietary"),
+                "url": os.environ.get("API_LICENSE_URL", "https://scoorge-bank.com/terms"),
+            },
+            "termsOfService": os.environ.get("API_TERMS_URL", "https://scoorge-bank.com/terms"),
+        },
     }
     PROPAGATE_EXCEPTIONS = True
 

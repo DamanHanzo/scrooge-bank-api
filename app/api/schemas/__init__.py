@@ -46,6 +46,14 @@ from app.api.schemas.responses import (
     LoanResponseSchema,
     MessageSchema,
     AdminActionResponseSchema,
+    # Error schemas
+    ErrorResponseSchema,
+    ErrorDetailSchema,
+    ValidationErrorSchema,
+    AuthenticationErrorSchema,
+    AuthorizationErrorSchema,
+    NotFoundErrorSchema,
+    BusinessRuleErrorSchema,
 )
 
 # Filter schemas
@@ -171,6 +179,14 @@ __all__ = [
     "LoanResponseSchema",
     "MessageSchema",
     "AdminActionResponseSchema",
+    # Error schemas
+    "ErrorResponseSchema",
+    "ErrorDetailSchema",
+    "ValidationErrorSchema",
+    "AuthenticationErrorSchema",
+    "AuthorizationErrorSchema",
+    "NotFoundErrorSchema",
+    "BusinessRuleErrorSchema",
     # Filter schemas
     "AccountFilterSchema",
     "TransactionFilterSchema",

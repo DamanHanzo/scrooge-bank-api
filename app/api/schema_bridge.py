@@ -35,14 +35,14 @@ class PydanticToMarshmallow:
     def convert(cls, pydantic_model: Type[BaseModel], name: str = None) -> Type[Schema]:
         """
         Convert a Pydantic model to a Marshmallow schema.
-        
+
         Args:
             pydantic_model: The Pydantic model class to convert
             name: Optional name for the Marshmallow schema (defaults to model name + 'Schema')
-            
+
         Returns:
             A Marshmallow Schema class
-            
+
         Example:
             ```python
             from app.schemas.auth import LoginRequest
@@ -51,38 +51,52 @@ class PydanticToMarshmallow:
         """
         if name is None:
             name = f"{pydantic_model.__name__}Schema"
-        
+
         # Get field definitions from Pydantic model
         ma_fields = {}
-        
+
         # Get type hints
         type_hints = get_type_hints(pydantic_model)
-        
+
+        # Extract examples from model config if available
+        model_examples = {}
+        if hasattr(pydantic_model, 'model_config'):
+            config = pydantic_model.model_config
+            if isinstance(config, dict) and 'json_schema_extra' in config:
+                schema_extra = config['json_schema_extra']
+                if isinstance(schema_extra, dict) and 'example' in schema_extra:
+                    model_examples = schema_extra['example']
+
         # Get Pydantic model fields
         for field_name, field_info in pydantic_model.model_fields.items():
             field_type = type_hints.get(field_name)
-            
+
+            # Get example for this field if available
+            field_example = model_examples.get(field_name) if model_examples else None
+
             # Convert to Marshmallow field
-            ma_field = cls._convert_field(field_name, field_type, field_info)
+            ma_field = cls._convert_field(field_type, field_info, field_example)
             if ma_field:
                 ma_fields[field_name] = ma_field
-        
+
         # Create Marshmallow schema class dynamically
         schema_class = type(name, (Schema,), ma_fields)
-        
+
         return schema_class
     
     @classmethod
-    def _convert_field(cls, field_name: str, field_type: Any, field_info: Any) -> fields.Field:
+    def _convert_field(
+        cls, field_type: Any, field_info: Any, field_example: Any = None
+    ) -> fields.Field:
         """Convert a single Pydantic field to Marshmallow field."""
-        
+
         # Handle Optional types
         is_optional = False
         origin = get_origin(field_type)
-        
+
         if origin is type(None):
             return None
-            
+
         # Check for Optional/Union types
         if origin is Union:
             args = get_args(field_type)
@@ -92,7 +106,7 @@ class PydanticToMarshmallow:
                 field_type = non_none_args[0]
                 is_optional = True
                 origin = get_origin(field_type)
-        
+
         # Handle List types
         if origin is list:
             args = get_args(field_type)
@@ -100,19 +114,27 @@ class PydanticToMarshmallow:
                 inner_type = args[0]
                 inner_field_class = cls.TYPE_MAPPING.get(inner_type, fields.Field)
                 return fields.List(inner_field_class(), allow_none=is_optional)
-        
+
         # Get base field class
         field_class = cls.TYPE_MAPPING.get(field_type, fields.String)
-        
+
         # Build field kwargs
         kwargs = {
             'allow_none': is_optional or not field_info.is_required(),
             'required': field_info.is_required() and not is_optional,
         }
-        
+
         # Add metadata from Pydantic field
+        metadata = {}
         if hasattr(field_info, 'description') and field_info.description:
-            kwargs['metadata'] = {'description': field_info.description}
+            metadata['description'] = field_info.description
+
+        # Add example to metadata if provided
+        if field_example is not None:
+            metadata['example'] = field_example
+
+        if metadata:
+            kwargs['metadata'] = metadata
         
         # Add validation from Pydantic constraints
         # Note: Convert Decimal to float for JSON serialization compatibility

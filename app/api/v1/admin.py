@@ -11,18 +11,19 @@ from flask_jwt_extended import jwt_required, get_jwt
 
 from app.models import db
 from app.services.customer_service import CustomerService
-from app.services.account_service import AccountService
 from app.services.loan_service import LoanService
 from app.services.bank_service import BankService
-from app.schemas.loan import LoanReviewRequest
+from app.schemas.loan import LoanReviewRequest, LoanApplicationStatusUpdateRequest
+from app.schemas.customer import CustomerStatusUpdateRequest
 from app.exceptions import NotFoundError, BusinessRuleViolationError, AuthorizationError
 
 # Import all schemas from centralized registry
 from app.api.schemas import (
-    LoanReviewSchema,
+    LoanApplicationStatusUpdateSchema,
     CustomerListSchema,
     CustomerFilterSchema,
-    ReasonSchema,
+    CustomerStatusUpdateSchema,
+    CustomerResponseSchema,
     AdminActionResponseSchema,
     BankFinancialStatusSchema,
 )
@@ -99,29 +100,45 @@ def list_all_customers(query_args):
         return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
 
 
-@admin_bp.route("/customers/<uuid:customer_id>/suspend", methods=["POST"])
-@admin_bp.arguments(ReasonSchema, description="Optional suspension reason")
-@admin_bp.response(200, AdminActionResponseSchema, description="Customer suspended")
+@admin_bp.route("/customers/<uuid:customer_id>", methods=["PATCH"])
+@admin_bp.arguments(CustomerStatusUpdateSchema, description="Customer status update")
+@admin_bp.response(200, CustomerResponseSchema, description="Customer status updated")
 @admin_bp.alt_response(403, description="Admin access required")
 @admin_bp.alt_response(404, description="Customer not found")
 @jwt_required()
-def suspend_customer(args, customer_id):
+def update_customer_status(args, customer_id):
     """
-    Suspend a customer account (Admin only).
+    Update customer status (Admin only).
 
-    Suspends a customer account, preventing access to the system.
+    Updates a customer's status (ACTIVE or SUSPENDED) using PATCH.
     Only accessible by administrators.
     """
     try:
         require_admin()
 
+        data = CustomerStatusUpdateRequest(**args)
         service = CustomerService(db.session)
-        customer = service.suspend_customer(customer_id, args.get("reason", "No reason provided"))
+
+        if data.status == 'SUSPENDED':
+            customer = service.suspend_customer(customer_id, data.reason or "No reason provided")
+        else:  # ACTIVE
+            customer = service.activate_customer(customer_id)
 
         return {
-            "message": "Customer suspended successfully",
             "id": str(customer.id),
+            "email": customer.email,
+            "first_name": customer.first_name,
+            "last_name": customer.last_name,
+            "date_of_birth": customer.date_of_birth.isoformat(),
+            "phone": customer.phone,
+            "address_line_1": customer.address_line_1,
+            "address_line_2": customer.address_line_2,
+            "city": customer.city,
+            "state": customer.state,
+            "zip_code": customer.zip_code,
             "status": customer.status,
+            "created_at": customer.created_at.isoformat(),
+            "updated_at": customer.updated_at.isoformat(),
         }
     except AuthorizationError as e:
         return jsonify({"error": {"code": "FORBIDDEN", "message": str(e)}}), 403
@@ -131,57 +148,39 @@ def suspend_customer(args, customer_id):
         return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
 
 
-@admin_bp.route("/customers/<uuid:customer_id>/activate", methods=["POST"])
-@admin_bp.response(200, AdminActionResponseSchema, description="Customer activated")
-@admin_bp.alt_response(403, description="Admin access required")
-@admin_bp.alt_response(404, description="Customer not found")
-@jwt_required()
-def activate_customer(customer_id):
-    """
-    Activate a customer account (Admin only).
-
-    Activates a suspended or inactive customer account.
-    Only accessible by administrators.
-    """
-    try:
-        require_admin()
-
-        service = CustomerService(db.session)
-        customer = service.activate_customer(customer_id)
-
-        return {
-            "message": "Customer activated successfully",
-            "id": str(customer.id),
-            "status": customer.status,
-        }
-    except AuthorizationError as e:
-        return jsonify({"error": {"code": "FORBIDDEN", "message": str(e)}}), 403
-    except NotFoundError as e:
-        return jsonify({"error": {"code": "NOT_FOUND", "message": str(e)}}), 404
-    except Exception as e:
-        return jsonify({"error": {"code": "INTERNAL_ERROR", "message": str(e)}}), 500
-
-
-@admin_bp.route("/loan-applications/<uuid:application_id>/review", methods=["POST"])
-@admin_bp.arguments(LoanReviewSchema, description="Loan review decision")
-@admin_bp.response(200, AdminActionResponseSchema, description="Loan application reviewed")
+@admin_bp.route("/loan-applications/<uuid:application_id>", methods=["PATCH"])
+@admin_bp.arguments(LoanApplicationStatusUpdateSchema, description="Loan application status update")
+@admin_bp.response(200, AdminActionResponseSchema, description="Loan application updated")
 @admin_bp.alt_response(403, description="Admin access required")
 @admin_bp.alt_response(404, description="Loan application not found")
-@admin_bp.alt_response(422, description="Application not in pending status")
+@admin_bp.alt_response(422, description="Business rule violation")
 @jwt_required()
-def review_loan_application(args, application_id):
+def update_loan_application_status_admin(args, application_id):
     """
-    Review a loan application (Admin only).
+    Update loan application status (Admin only).
 
-    Approve or reject a pending loan application.
+    Admins can approve or reject pending loan applications.
     Only accessible by administrators.
     """
     try:
         require_admin()
 
-        data = LoanReviewRequest(**args)
+        data = LoanApplicationStatusUpdateRequest(**args)
         service = LoanService(db.session)
-        application = service.review_application(application_id, data)
+
+        # Admins can only approve or reject
+        if data.status == 'CANCELLED':
+            return jsonify({"error": {"code": "FORBIDDEN", "message": "Admins cannot cancel applications"}}), 403
+
+        # Use existing review_application method
+        review_data = LoanReviewRequest(
+            status=data.status,
+            approved_amount=data.approved_amount,
+            interest_rate=data.interest_rate,
+            term_months=data.term_months,
+            rejection_reason=data.rejection_reason
+        )
+        application = service.review_application(application_id, review_data)
 
         return {
             "message": f"Loan application {data.status.lower()}",

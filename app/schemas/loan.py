@@ -162,6 +162,53 @@ class LoanApplicationResponse(BaseModel):
     }
 
 
+class LoanApplicationStatusUpdateRequest(BaseModel):
+    """Schema for updating loan application status."""
+    status: Literal['CANCELLED', 'APPROVED', 'REJECTED'] = Field(..., description="New application status")
+    approved_amount: Optional[Decimal] = Field(
+        None,
+        gt=0,
+        description="Approved amount (required if status is APPROVED)"
+    )
+    interest_rate: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=1,
+        description="Interest rate as decimal (required if status is APPROVED)"
+    )
+    term_months: Optional[int] = Field(
+        None,
+        ge=6,
+        le=84,
+        description="Approved term in months (required if status is APPROVED)"
+    )
+    rejection_reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Reason for rejection (required if status is REJECTED)"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "status": "CANCELLED"
+                },
+                {
+                    "status": "APPROVED",
+                    "approved_amount": 25000.00,
+                    "interest_rate": 0.0525,
+                    "term_months": 36
+                },
+                {
+                    "status": "REJECTED",
+                    "rejection_reason": "Insufficient income for requested amount"
+                }
+            ]
+        }
+    }
+
+
 class LoanPaymentRequest(BaseModel):
     """Schema for loan payment request."""
 

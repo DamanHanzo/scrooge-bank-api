@@ -13,19 +13,17 @@ from decimal import Decimal
 
 from app.models import db
 from app.services.loan_service import LoanService
-from app.services.account_service import AccountService
-from app.schemas.loan import LoanApplicationRequest, LoanPaymentRequest
+from app.schemas.loan import LoanApplicationRequest, LoanApplicationStatusUpdateRequest
 from app.exceptions import NotFoundError, ValidationError, BusinessRuleViolationError
 
 # Import all schemas from centralized registry
 from app.api.schemas import (
     LoanApplicationSchema,
+    LoanApplicationStatusUpdateSchema,
     LoanResponseSchema,
     LoanListSchema,
     LoanFilterSchema,
-    MessageSchema,
-    TransactionResponseSchema,
-    LoanPaymentSchema
+    MessageSchema
 )
 
 # ============================================================================
@@ -174,99 +172,69 @@ def list_loan_applications(query_args):
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
 
 
-@loans_bp.route('/<uuid:application_id>/cancel', methods=['POST'])
-@loans_bp.response(200, MessageSchema, description="Loan application cancelled")
+@loans_bp.route('/<uuid:application_id>', methods=['PATCH'])
+@loans_bp.arguments(LoanApplicationStatusUpdateSchema, description="Loan application status update")
+@loans_bp.response(200, LoanResponseSchema, description="Loan application updated")
 @loans_bp.alt_response(403, description="Not authorized")
 @loans_bp.alt_response(404, description="Loan application not found")
-@loans_bp.alt_response(422, description="Cannot cancel - already approved or disbursed")
-@jwt_required()
-def cancel_loan_application(application_id):
-    """
-    Cancel a loan application.
-    
-    Only customers can cancel their own pending applications.
-    Approved or disbursed loans cannot be cancelled.
-    """
-    try:
-        service = LoanService(db.session)
-        application = service.get_application(application_id)
-        
-        claims = get_jwt()
-        user_role = claims.get('role')
-        user_customer_id = claims.get('customer_id')
-        
-        if user_role == 'CUSTOMER' and str(user_customer_id) != str(application.customer_id):
-            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
-        
-        service.cancel_application(application_id)
-        
-        return {'message': 'Loan application cancelled successfully'}
-    except NotFoundError as e:
-        return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
-    except BusinessRuleViolationError as e:
-        return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
-    except Exception as e:
-        return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500
-
-
-@loans_bp.route('/loan-accounts/<uuid:loan_account_id>/payments', methods=['POST'])
-@loans_bp.arguments(LoanPaymentSchema, description="Loan payment details", location='json')
-@loans_bp.response(201, TransactionResponseSchema, description="Payment processed")
-@loans_bp.alt_response(403, description="Not authorized")
-@loans_bp.alt_response(404, description="Loan account not found")
 @loans_bp.alt_response(422, description="Business rule violation")
 @jwt_required()
-def make_loan_payment(args, loan_account_id):
+def update_loan_application_status(args, application_id):
     """
-    Make a payment on a loan account.
+    Update loan application status.
 
-    Customers can only make payments on their own loan accounts.
-    Reduces the loan balance (debt) by the payment amount.
-    Automatically closes the loan account when fully paid off.
+    Customers can cancel their own pending applications (status: CANCELLED).
+    Admins can approve or reject applications (status: APPROVED or REJECTED).
     """
     try:
-        # Validate and parse payment request
-        payment_request = LoanPaymentRequest(**args)
+        data = LoanApplicationStatusUpdateRequest(**args)
+        service = LoanService(db.session)
+        application = service.get_application(application_id)
 
-        # Get loan account and verify ownership
-        account_service = AccountService(db.session)
-        loan_account = account_service.get_account(loan_account_id)
-
-        # Authorization: customers can only pay their own loans
         claims = get_jwt()
         user_role = claims.get('role')
         user_customer_id = claims.get('customer_id')
 
-        if user_role == 'CUSTOMER' and str(user_customer_id) != str(loan_account.customer_id):
-            return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
+        # Authorization check
+        if user_role == 'CUSTOMER':
+            # Customers can only cancel their own applications
+            if str(user_customer_id) != str(application.customer_id):
+                return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Not authorized'}}), 403
+            if data.status != 'CANCELLED':
+                return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Customers can only cancel applications'}}), 403
 
-        # Process payment
-        loan_service = LoanService(db.session)
-        transaction = loan_service.make_loan_payment(
-            loan_account_id=loan_account_id,
-            payment_amount=payment_request.amount,
-            description=payment_request.description
-        )
+            # Cancel the application
+            service.cancel_application(application_id)
+            application = service.get_application(application_id)
+        else:
+            # Admins can approve or reject
+            if data.status == 'CANCELLED':
+                return jsonify({'error': {'code': 'FORBIDDEN', 'message': 'Admins cannot cancel applications'}}), 403
+
+            # Use existing review_application method
+            from app.schemas.loan import LoanReviewRequest
+            review_data = LoanReviewRequest(
+                status=data.status,
+                approved_amount=data.approved_amount,
+                interest_rate=data.interest_rate,
+                term_months=data.term_months,
+                rejection_reason=data.rejection_reason
+            )
+            application = service.review_application(application_id, review_data)
 
         return {
-            'id': str(transaction.id),
-            'account_id': str(transaction.account_id),
-            'transaction_type': transaction.transaction_type,
-            'amount': str(transaction.amount),
-            'balance_after': str(transaction.balance_after),
-            'reference_number': transaction.reference_number,
-            'status': transaction.status,
-            'description': transaction.description,
-            'processed_at': transaction.processed_at.isoformat() if transaction.processed_at else None
-        }, 201
-
-    except PydanticValidationError as e:
-        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
+            'id': str(application.id),
+            'customer_id': str(application.customer_id),
+            'application_number': application.application_number,
+            'requested_amount': str(application.requested_amount),
+            'status': application.status,
+            'applied_at': application.applied_at.isoformat()
+        }
     except NotFoundError as e:
         return jsonify({'error': {'code': 'NOT_FOUND', 'message': str(e)}}), 404
-    except ValidationError as e:
-        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 422
     except BusinessRuleViolationError as e:
         return jsonify({'error': {'code': 'BUSINESS_RULE_VIOLATION', 'message': str(e)}}), 422
+    except (PydanticValidationError, ValidationError) as e:
+        return jsonify({'error': {'code': 'VALIDATION_ERROR', 'message': str(e)}}), 400
     except Exception as e:
         return jsonify({'error': {'code': 'INTERNAL_ERROR', 'message': str(e)}}), 500

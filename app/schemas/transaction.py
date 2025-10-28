@@ -10,6 +10,48 @@ from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from enum import Enum
+
+
+class TransactionType(str, Enum):
+    """Transaction type enumeration."""
+    DEPOSIT = "DEPOSIT"
+    WITHDRAWAL = "WITHDRAWAL"
+    LOAN_DISBURSEMENT = "LOAN_DISBURSEMENT"
+    LOAN_PAYMENT = "LOAN_PAYMENT"
+
+
+class TransactionCreateRequest(BaseModel):
+    """Schema for unified transaction creation."""
+    type: TransactionType = Field(..., description="Type of transaction")
+    amount: Decimal = Field(..., gt=0, description="Transaction amount")
+    currency: str = Field(default='USD', pattern=r'^[A-Z]{3}$', description="Currency code")
+    description: Optional[str] = Field(None, max_length=500, description="Transaction description")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "type": "DEPOSIT",
+                    "amount": 500.00,
+                    "currency": "USD",
+                    "description": "Paycheck deposit"
+                },
+                {
+                    "type": "WITHDRAWAL",
+                    "amount": 200.00,
+                    "currency": "USD",
+                    "description": "ATM withdrawal"
+                },
+                {
+                    "type": "LOAN_PAYMENT",
+                    "amount": 1000.00,
+                    "currency": "USD",
+                    "description": "Monthly loan payment"
+                }
+            ]
+        }
+    }
 
 
 class DepositRequest(BaseModel):

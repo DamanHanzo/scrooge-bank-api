@@ -5,7 +5,7 @@ Pydantic schemas for customer-related requests and responses.
 """
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -84,6 +84,27 @@ class CustomerUpdateRequest(BaseModel):
                     "zip_code": "94105"
                 }
             }
+        }
+    }
+
+
+class CustomerStatusUpdateRequest(BaseModel):
+    """Schema for updating customer status (admin only)."""
+    status: Literal['ACTIVE', 'SUSPENDED'] = Field(..., description="New customer status")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for status change")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "status": "SUSPENDED",
+                    "reason": "Fraudulent activity detected"
+                },
+                {
+                    "status": "ACTIVE",
+                    "reason": "Suspension lifted after investigation"
+                }
+            ]
         }
     }
 

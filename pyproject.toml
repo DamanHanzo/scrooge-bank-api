@@ -6,14 +6,14 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bank-api"
+name = "scrooge-bank-api"
 version = "1.0.0"
-description = "RESTful Banking API built with Flask"
+description = "Scrooge Banking API built with Flask"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "Daman Singh", email = "your.email@example.com"}
+    {name = "Daman Singh", email = "damanbaidwan00@gmail.com"}
 ]
 keywords = ["banking", "api", "flask", "rest", "postgresql"]
 classifiers = [
@@ -24,9 +24,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/bank-api"
-Documentation = "https://github.com/yourusername/bank-api/docs"
-Repository = "https://github.com/yourusername/bank-api"
+Repository = "https://github.com/damanhanzo/scrooge-bank-api"
 
 # Black Configuration
 [tool.black]

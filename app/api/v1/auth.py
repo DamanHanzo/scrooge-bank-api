@@ -43,6 +43,7 @@ auth_bp = Blueprint(
 @auth_bp.arguments(RegisterSchema, description="User registration details")
 @auth_bp.response(201, TokenResponseSchema, description="User registered successfully")
 @auth_bp.alt_response(400, description="Validation error or email already exists")
+@auth_bp.doc(operationId="registerUser")
 def register(args):
     """
     Register a new customer user.
@@ -71,6 +72,7 @@ def register(args):
 @auth_bp.arguments(LoginSchema, description="Login credentials")
 @auth_bp.response(200, TokenResponseSchema, description="Login successful")
 @auth_bp.alt_response(401, description="Invalid credentials")
+@auth_bp.doc(operationId="authenticateUser")
 def login(args):
     """
     Authenticate a user and return access tokens.
@@ -95,6 +97,7 @@ def login(args):
 @auth_bp.route('/refresh', methods=['POST'])
 @auth_bp.response(200, TokenResponseSchema, description="New access token generated")
 @auth_bp.alt_response(401, description="Invalid refresh token")
+@auth_bp.doc(operationId="refreshAccessToken")
 @jwt_required(refresh=True)
 def refresh():
     """
@@ -120,6 +123,7 @@ def refresh():
 @auth_bp.route('/me', methods=['GET'])
 @auth_bp.response(200, UserInfoSchema, description="Current user information")
 @auth_bp.alt_response(401, description="Not authenticated")
+@auth_bp.doc(operationId="getCurrentUser")
 @jwt_required()
 def get_current_user():
     """
@@ -149,6 +153,7 @@ def get_current_user():
 @auth_bp.arguments(PasswordChangeSchema, description="Password change request")
 @auth_bp.response(200, MessageSchema, description="Password changed successfully")
 @auth_bp.alt_response(401, description="Invalid current password")
+@auth_bp.doc(operationId="changePassword")
 @jwt_required()
 def change_password(args):
     """

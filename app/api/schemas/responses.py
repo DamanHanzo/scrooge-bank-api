@@ -174,3 +174,139 @@ AdminActionResponseSchema = create_response_schema(
         "status": fields.String(required=True),
     },
 )
+
+
+# ============================================================================
+# ERROR RESPONSE SCHEMAS
+# ============================================================================
+
+ErrorDetailSchema = create_response_schema(
+    "ErrorDetail",
+    {
+        "code": fields.String(
+            required=True,
+            metadata={
+                "description": "Error code identifying the type of error",
+                "example": "VALIDATION_ERROR",
+            },
+        ),
+        "message": fields.String(
+            required=True,
+            metadata={
+                "description": "Human-readable error message",
+                "example": "Invalid input provided",
+            },
+        ),
+        "details": fields.Dict(
+            required=False,
+            metadata={
+                "description": "Additional error details (field-specific errors, etc.)",
+                "example": {"field": "email", "error": "Invalid email format"},
+            },
+        ),
+    },
+)
+
+ErrorResponseSchema = create_response_schema(
+    "ErrorResponse",
+    {
+        "error": fields.Nested(
+            ErrorDetailSchema,
+            required=True,
+            metadata={
+                "description": "Error information",
+                "example": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Invalid input provided",
+                    "details": {"email": "Invalid email format"},
+                },
+            },
+        )
+    },
+)
+
+# Specific error response types for better documentation
+ValidationErrorSchema = create_response_schema(
+    "ValidationError",
+    {
+        "error": fields.Nested(
+            ErrorDetailSchema,
+            required=True,
+            metadata={
+                "example": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Request validation failed",
+                    "details": {
+                        "email": "Invalid email format",
+                        "password": "Must be at least 8 characters",
+                    },
+                }
+            },
+        )
+    },
+)
+
+AuthenticationErrorSchema = create_response_schema(
+    "AuthenticationError",
+    {
+        "error": fields.Nested(
+            ErrorDetailSchema,
+            required=True,
+            metadata={
+                "example": {
+                    "code": "AUTHENTICATION_ERROR",
+                    "message": "Invalid email or password",
+                }
+            },
+        )
+    },
+)
+
+AuthorizationErrorSchema = create_response_schema(
+    "AuthorizationError",
+    {
+        "error": fields.Nested(
+            ErrorDetailSchema,
+            required=True,
+            metadata={
+                "example": {
+                    "code": "FORBIDDEN",
+                    "message": "Not authorized to access this resource",
+                }
+            },
+        )
+    },
+)
+
+NotFoundErrorSchema = create_response_schema(
+    "NotFoundError",
+    {
+        "error": fields.Nested(
+            ErrorDetailSchema,
+            required=True,
+            metadata={
+                "example": {
+                    "code": "NOT_FOUND",
+                    "message": "Resource not found",
+                }
+            },
+        )
+    },
+)
+
+BusinessRuleErrorSchema = create_response_schema(
+    "BusinessRuleError",
+    {
+        "error": fields.Nested(
+            ErrorDetailSchema,
+            required=True,
+            metadata={
+                "example": {
+                    "code": "BUSINESS_RULE_VIOLATION",
+                    "message": "Insufficient funds for withdrawal",
+                    "details": {"available_balance": "100.00", "requested_amount": "150.00"},
+                }
+            },
+        )
+    },
+)
