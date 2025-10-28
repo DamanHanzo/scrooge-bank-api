@@ -59,9 +59,10 @@ class TestAccountLifecycle:
             db_session.commit()
             
             # Step 4: Close account
-            close_response = client.post(
-                f'/v1/accounts/{account_id}/close',
-                headers=auth_headers
+            close_response = client.patch(
+                f'/v1/accounts/{account_id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             assert close_response.status_code == 200
             assert close_response.json['status'] == 'CLOSED'
@@ -110,9 +111,10 @@ class TestAccountLifecycle:
             db_session.commit()
             
             # Step 4: Close account (should succeed)
-            close_response = client.post(
-                f'/v1/accounts/{account_id}/close',
-                headers=auth_headers
+            close_response = client.patch(
+                f'/v1/accounts/{account_id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             assert close_response.status_code == 200
             assert close_response.json['status'] == 'CLOSED'
@@ -147,9 +149,10 @@ class TestAccountLifecycle:
             first_account_number = create1_response.json['account_number']
             
             # Step 2: Close first account
-            close_response = client.post(
-                f'/v1/accounts/{first_account_id}/close',
-                headers=auth_headers
+            close_response = client.patch(
+                f'/v1/accounts/{first_account_id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             assert close_response.status_code == 200
             assert close_response.json['status'] == 'CLOSED'
@@ -200,9 +203,10 @@ class TestAccountLifecycle:
             )
             first_account_id = create1_response.json['id']
             
-            close1_response = client.post(
-                f'/v1/accounts/{first_account_id}/close',
-                headers=auth_headers
+            close1_response = client.patch(
+                f'/v1/accounts/{first_account_id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             assert close1_response.status_code == 200
             
@@ -314,7 +318,7 @@ class TestAccountLifecycle:
             )
             checking_id = checking_response.json['id']
             
-            client.post(f'/v1/accounts/{checking_id}/close', headers=auth_headers)
+            client.patch(f'/v1/accounts/{checking_id}', headers=auth_headers, json={"status": "CLOSED"})
             
             # Step 2: Create LOAN account (manually for testing)
             loan_account = Account(

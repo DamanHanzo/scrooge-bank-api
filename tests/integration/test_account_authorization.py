@@ -16,7 +16,7 @@ class TestAccountAuthorization:
     def test_unauthenticated_create_account_returns_401(self, client, app):
         """
         Test: Unauthenticated request to create account → 401.
-        
+
         Scenario: No JWT token provided
         Action: POST /v1/accounts without auth headers
         Expected: 401 Unauthorized
@@ -50,7 +50,7 @@ class TestAccountAuthorization:
         """
         with app.app_context():
             fake_id = "00000000-0000-0000-0000-000000000000"
-            response = client.post(f'/v1/accounts/{fake_id}/close')
+            response = client.patch(f'/v1/accounts/{fake_id}', json={"status": "CLOSED"})
             assert response.status_code == 401
 
     def test_customer_creates_account_without_customer_id_in_body(
@@ -58,7 +58,7 @@ class TestAccountAuthorization:
     ):
         """
         Test: Customer creating account (no customer_id in body) → 201.
-        
+
         Scenario: Customer creates account for themselves
         Action: POST /v1/accounts with JWT, no customer_id in body
         Expected: 201 Created, customer_id extracted from JWT
@@ -164,9 +164,10 @@ class TestAccountAuthorization:
             db_session.commit()
             
             # Close own account
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             assert response.status_code == 200
@@ -215,9 +216,10 @@ class TestAccountAuthorization:
             db_session.commit()
             
             # Try to close other's account
-            response = client.post(
-                f'/v1/accounts/{other_account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{other_account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             assert response.status_code == 403
@@ -228,7 +230,7 @@ class TestAccountAuthorization:
     ):
         """
         Test: Admin creating account for customer → requires customer_id param.
-        
+
         Scenario: Admin creates account for a specific customer
         Action: POST /v1/accounts?customer_id={id}
         Expected: 201 Created
@@ -243,7 +245,7 @@ class TestAccountAuthorization:
                     'currency': 'USD'
                 }
             )
-            
+
             assert response.status_code == 201
             assert response.json['customer_id'] == str(sample_customer.id)
 
@@ -290,9 +292,10 @@ class TestAccountAuthorization:
             db_session.commit()
             
             # Admin closes account
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=admin_auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=admin_auth_headers,
+                json={"status": "CLOSED"}
             )
             
             assert response.status_code == 200

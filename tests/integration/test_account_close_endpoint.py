@@ -45,9 +45,10 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act - Close the account
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -86,9 +87,10 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act - Try to close the account
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -141,9 +143,10 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act - Try to close the other customer's account
-            response = client.post(
-                f'/v1/accounts/{other_account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{other_account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -179,9 +182,10 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act - Admin closes the account
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=admin_auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=admin_auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -208,9 +212,10 @@ class TestAccountCloseEndpoint:
             fake_id = "00000000-0000-0000-0000-000000000000"
             
             # Act - Try to close non-existent account
-            response = client.post(
-                f'/v1/accounts/{fake_id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{fake_id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -242,9 +247,10 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act - Try to close already closed account
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert - Could be 200 (idempotent) or error
@@ -280,9 +286,10 @@ class TestAccountCloseEndpoint:
             assert account.status == "ACTIVE"
             
             # Act - Close account
-            response = client.post(
-                f'/v1/accounts/{account_id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account_id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -317,9 +324,10 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act
-            response = client.post(
-                f'/v1/accounts/{account.id}/close',
-                headers=auth_headers
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                headers=auth_headers,
+                json={"status": "CLOSED"}
             )
             
             # Assert
@@ -368,8 +376,9 @@ class TestAccountCloseEndpoint:
             db_session.commit()
             
             # Act - No auth headers
-            response = client.post(
-                f'/v1/accounts/{account.id}/close'
+            response = client.patch(
+                f'/v1/accounts/{account.id}',
+                json={"status": "CLOSED"}
             )
             
             # Assert

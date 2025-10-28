@@ -39,9 +39,10 @@ class TestDepositFunctionalTests:
 
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{sample_checking_account.id}/deposits",
+                f"/v1/accounts/{sample_checking_account.id}/transactions",
                 headers=auth_headers,
                 json={
+                    "type": "DEPOSIT",
                     "amount": float(deposit_amount),
                     "currency": "USD",
                     "description": "Test deposit",
@@ -79,9 +80,9 @@ class TestDepositFunctionalTests:
 
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{fake_account_id}/deposits",
+                f"/v1/accounts/{fake_account_id}/transactions",
                 headers=auth_headers,
-                json={"amount": 100.00, "currency": "USD"},
+                json={"type": "DEPOSIT", "amount": 100.00, "currency": "USD"},
             )
 
             # Assert
@@ -139,9 +140,9 @@ class TestDepositFunctionalTests:
 
             # Act - Try to deposit to other customer's account
             response = client.post(
-                f"/v1/transactions/accounts/{other_account.id}/deposits",
+                f"/v1/accounts/{other_account.id}/transactions",
                 headers=auth_headers,
-                json={"amount": 100.00, "currency": "USD"},
+                json={"type": "DEPOSIT", "amount": 100.00, "currency": "USD"},
             )
 
             # Assert
@@ -175,9 +176,9 @@ class TestDepositFunctionalTests:
 
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{closed_account.id}/deposits",
+                f"/v1/accounts/{closed_account.id}/transactions",
                 headers=auth_headers,
-                json={"amount": 100.00, "currency": "USD"},
+                json={"type": "DEPOSIT", "amount": 100.00, "currency": "USD"},
             )
 
             # Assert
@@ -199,9 +200,9 @@ class TestDepositFunctionalTests:
         with app.app_context():
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{sample_checking_account.id}/deposits",
+                f"/v1/accounts/{sample_checking_account.id}/transactions",
                 headers=auth_headers,
-                json={"amount": -100.00, "currency": "USD"},
+                json={"type": "DEPOSIT", "amount": -100.00, "currency": "USD"},
             )
 
             # Assert
@@ -223,9 +224,9 @@ class TestDepositFunctionalTests:
         with app.app_context():
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{sample_checking_account.id}/deposits",
+                f"/v1/accounts/{sample_checking_account.id}/transactions",
                 headers=auth_headers,
-                json={"amount": 0.00, "currency": "USD"},
+                json={"type": "DEPOSIT", "amount": 0.00, "currency": "USD"},
             )
 
             # Assert
@@ -253,9 +254,9 @@ class TestDepositFunctionalTests:
 
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{sample_checking_account.id}/deposits",
+                f"/v1/accounts/{sample_checking_account.id}/transactions",
                 headers=auth_headers,
-                json={"amount": float(deposit_amount), "currency": "USD"},
+                json={"type": "DEPOSIT", "amount": float(deposit_amount), "currency": "USD"},
             )
 
             # Assert
@@ -288,9 +289,10 @@ class TestDepositFunctionalTests:
 
             # Act
             response = client.post(
-                f"/v1/transactions/accounts/{sample_checking_account.id}/deposits",
+                f"/v1/accounts/{sample_checking_account.id}/transactions",
                 headers=auth_headers,
                 json={
+                    "type": "DEPOSIT",
                     "amount": float(deposit_amount),
                     "currency": "USD",
                     "description": description,
@@ -332,9 +334,9 @@ class TestDepositFunctionalTests:
             # Act - Make 3 deposits
             for i in range(3):
                 response = client.post(
-                    f"/v1/transactions/accounts/{sample_checking_account.id}/deposits",
+                    f"/v1/accounts/{sample_checking_account.id}/transactions",
                     headers=auth_headers,
-                    json={"amount": 10.00 + i, "currency": "USD"},
+                    json={"type": "DEPOSIT", "amount": 10.00 + i, "currency": "USD"},
                 )
 
                 assert response.status_code == 201
