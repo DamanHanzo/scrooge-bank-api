@@ -6,20 +6,20 @@ A RESTful banking API built with Flask, PostgreSQL, and Docker. Implements core 
 
 ```bash
 # Clone and setup
-git clone <repo-url>
+git clone https://github.com/DamanHanzo/scrooge-bank-api
 cd scoorge-bank-api
 cp .env.example .env
 
-# Start services and run migrations
-make up
-make migrate
-
-# Access API documentation
-open http://localhost:5025/api/docs
+# Complete setup (starts services, runs migrations, seeds data)
+make setup
 
 # Run tests
 make test
 ```
+
+The API will be available at:
+- **API Base**: http://localhost:5025
+- **API Docs**: http://localhost:5025/api/docs
 
 ## What This Project Does
 
@@ -140,12 +140,11 @@ docker-compose exec api python scripts/seed_data.py
 ### Using the Makefile (Recommended)
 
 ```bash
-make up          # Start all services
-make migrate     # Run database migrations
+make setup       # Complete first-time setup
+make up          # Start services
+make down        # Stop services
 make test        # Run all tests
 make logs        # View API logs
-make shell       # Access Python shell
-make down        # Stop all services
 make fresh       # Clean restart (removes all data)
 make help        # Show all available commands
 ```
@@ -199,25 +198,19 @@ The Swagger UI provides:
 ### Common Commands
 
 ```bash
-# View API logs
-docker-compose logs -f api
+# View logs
+make logs
 
-# Access database
-docker-compose exec db psql -U bank_user -d bank_api_dev
+# Access database shell
+make db-shell
 
-# Format code
-docker-compose exec api black app tests
-
-# Run linters
-docker-compose exec api flake8 app tests
-
-# Create new migration
-docker-compose exec api alembic revision --autogenerate -m "description"
+# Run migrations
+make migrate
 
 # Stop services
-docker-compose down
+make down
 
-# Remove all data and restart fresh
+# Clean restart (removes all data)
 make fresh
 ```
 
