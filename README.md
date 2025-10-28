@@ -174,14 +174,14 @@ make help        # Show all available commands
 # Run all tests
 make test
 
-# Run with coverage report
-make test-cov
-
 # Run specific test file
 docker-compose exec api pytest tests/unit/services/test_account_service.py
 
 # Run tests matching a pattern
 docker-compose exec api pytest -k "test_deposit"
+
+# Run with coverage report
+docker-compose exec api pytest --cov=app --cov-report=html
 ```
 
 **Test Coverage:** 112 integration tests covering all API endpoints and business logic.
