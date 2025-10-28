@@ -23,15 +23,34 @@ The API will be available at:
 
 ## What This Project Does
 
-### Core Features (Requirements)
+This project implements a complete banking API based on the following user stories:
 
-1. **Customer Management** - Register customers and manage their profiles
-2. **Account Management** - Create and manage checking accounts
-3. **Deposits** - Add funds to checking accounts
-4. **Withdrawals** - Withdraw funds with balance validation and limits
-5. **Loan Applications** - Submit, review, and manage personal loan applications
-6. **Authentication & Authorization** - JWT-based auth with role-based access control (Customer, Admin, Super Admin)
-7. **Admin Operations** - Customer status management, loan reviews, bank financial oversight
+### Required User Stories
+
+**Accounts**
+- ✅ As a user, I should be able to open an Account
+- ✅ As a user, I should be able to close an Account
+- ✅ As a user, I should not be allowed to have more than 1 open checking account
+
+**Deposits**
+- ✅ As a user, I should be able to make a deposit to my account
+- ✅ As a user, if I do not have an account when I deposit, I should see an error
+- ✅ As a user, I should not be able to make deposits to other people's accounts
+
+**Withdrawals**
+- ✅ As a user, I should be able to make a withdrawal from my account
+- ✅ As a user, if I do not have enough funds, I should see an error
+- ✅ As a user, I should not be able to make withdrawals from other people's accounts
+
+**Loans**
+- ✅ As a user, I should be able to apply for a loan
+- ✅ As a user, my loan should be accepted if the bank has enough money to cover it
+- ✅ As a user, when I apply for a loan, it should be rejected if the bank doesn't have enough money to cover it
+- ✅ As a user, I can make a payment on my loan
+
+**Bank Operations**
+- ✅ As the bank operator, I should be able to see how much money total we currently have on hand
+- ✅ As the bank operator, user withdrawals are allowed to put the bank into debt, but loans are not
 
 ### Bonus Feature: Transaction History
 
@@ -219,11 +238,20 @@ make fresh
 Key configuration in `.env`:
 
 ```bash
+# Database
 DATABASE_URL=postgresql://bank_user:bank_password@db:5432/bank_api_dev
+
+# Security
 SECRET_KEY=your-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-here
-FLASK_ENV=development
+
+# Bank Configuration
+BANK_INITIAL_CAPITAL=250000.00    # Bank's starting balance (default: $250,000)
+RESERVE_RATIO=0.25                 # Usable funds ratio (25%)
+MAX_WITHDRAWAL_AMOUNT=10000.00     # Per-transaction withdrawal limit
 ```
+
+**Note:** The bank's starting balance is set to **$250,000** by default (as per requirements) via the `BANK_INITIAL_CAPITAL` environment variable.
 
 ## Security Features
 
