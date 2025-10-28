@@ -44,6 +44,7 @@ transactions_bp = Blueprint(
 @transactions_bp.response(200, TransactionResponseSchema, description="Transaction details")
 @transactions_bp.alt_response(403, description="Not authorized")
 @transactions_bp.alt_response(404, description="Transaction not found")
+@transactions_bp.doc(operationId="getTransaction")
 @jwt_required()
 def get_transaction(transaction_id):
     """

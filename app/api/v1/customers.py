@@ -43,6 +43,7 @@ customers_bp = Blueprint(
 @customers_bp.response(201, CustomerResponseSchema, description="Customer created successfully")
 @customers_bp.alt_response(400, description="Validation error")
 @customers_bp.alt_response(403, description="Admin access required")
+@customers_bp.doc(operationId="createCustomer")
 @jwt_required()
 def create_customer(args):
     """
@@ -77,6 +78,7 @@ def create_customer(args):
 @customers_bp.response(200, CustomerResponseSchema, description="Customer details")
 @customers_bp.alt_response(403, description="Not authorized")
 @customers_bp.alt_response(404, description="Customer not found")
+@customers_bp.doc(operationId="getCustomer")
 @jwt_required()
 def get_customer(customer_id):
     """
@@ -114,6 +116,7 @@ def get_customer(customer_id):
 @customers_bp.response(200, CustomerResponseSchema, description="Customer updated successfully")
 @customers_bp.alt_response(403, description="Not authorized")
 @customers_bp.alt_response(404, description="Customer not found")
+@customers_bp.doc(operationId="updateCustomer")
 @jwt_required()
 def update_customer(args, customer_id):
     """
@@ -150,6 +153,7 @@ def update_customer(args, customer_id):
 @customers_bp.route('/<uuid:customer_id>/accounts', methods=['GET'])
 @customers_bp.response(200, AccountListSchema, description="List of customer accounts")
 @customers_bp.alt_response(403, description="Not authorized")
+@customers_bp.doc(operationId="getCustomerAccounts")
 @jwt_required()
 def get_customer_accounts(customer_id):
     """

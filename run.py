@@ -1,5 +1,5 @@
 """
-Bank API - Application Entry Point
+Scrooge Bank API - Application Entry Point
 
 This module serves as the entry point for running the Flask application.
 It creates the app instance and runs the development server.

@@ -58,6 +58,7 @@ def require_admin():
 @admin_bp.arguments(CustomerFilterSchema, location="query", description="Filter parameters")
 @admin_bp.response(200, CustomerListSchema, description="List of customers")
 @admin_bp.alt_response(403, description="Admin access required")
+@admin_bp.doc(operationId="listAllCustomers")
 @jwt_required()
 def list_all_customers(query_args):
     """
@@ -105,6 +106,7 @@ def list_all_customers(query_args):
 @admin_bp.response(200, CustomerResponseSchema, description="Customer status updated")
 @admin_bp.alt_response(403, description="Admin access required")
 @admin_bp.alt_response(404, description="Customer not found")
+@admin_bp.doc(operationId="updateCustomerStatus")
 @jwt_required()
 def update_customer_status(args, customer_id):
     """
@@ -154,6 +156,7 @@ def update_customer_status(args, customer_id):
 @admin_bp.alt_response(403, description="Admin access required")
 @admin_bp.alt_response(404, description="Loan application not found")
 @admin_bp.alt_response(422, description="Business rule violation")
+@admin_bp.doc(operationId="reviewLoanApplication")
 @jwt_required()
 def update_loan_application_status_admin(args, application_id):
     """
@@ -205,6 +208,7 @@ def update_loan_application_status_admin(args, application_id):
 @admin_bp.route("/bank/financial-status", methods=["GET"])
 @admin_bp.response(200, BankFinancialStatusSchema)
 @admin_bp.doc(
+    operationId="getBankFinancialStatus",
     description="Get comprehensive bank financial status including cash position and account breakdown"
 )
 @jwt_required()

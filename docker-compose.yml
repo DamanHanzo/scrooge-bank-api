@@ -38,7 +38,7 @@ services:
       JWT_ACCESS_TOKEN_EXPIRES: 3600
       JWT_REFRESH_TOKEN_EXPIRES: 2592000
       API_VERSION: v1
-      API_TITLE: Bank API
+      API_TITLE: Scrooge Bank API
       API_DESCRIPTION: Scrooge Banking API
       ENABLE_WITHDRAWALS: "true"
       ENABLE_LOANS: "true"

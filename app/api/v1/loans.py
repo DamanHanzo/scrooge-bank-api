@@ -46,6 +46,7 @@ loans_bp = Blueprint(
 @loans_bp.response(201, LoanResponseSchema, description="Loan application submitted")
 @loans_bp.alt_response(403, description="Not authorized")
 @loans_bp.alt_response(422, description="Business rule violation")
+@loans_bp.doc(operationId="submitLoanApplication")
 @jwt_required()
 def submit_loan_application(args):
     """
@@ -87,6 +88,7 @@ def submit_loan_application(args):
 @loans_bp.response(200, LoanResponseSchema, description="Loan application details")
 @loans_bp.alt_response(403, description="Not authorized")
 @loans_bp.alt_response(404, description="Loan application not found")
+@loans_bp.doc(operationId="getLoanApplication")
 @jwt_required()
 def get_loan_application(application_id):
     """
@@ -124,6 +126,7 @@ def get_loan_application(application_id):
 @loans_bp.arguments(LoanFilterSchema, location='query', description="Filter parameters")
 @loans_bp.response(200, LoanListSchema, description="List of loan applications")
 @loans_bp.alt_response(403, description="Not authorized")
+@loans_bp.doc(operationId="listLoanApplications")
 @jwt_required()
 def list_loan_applications(query_args):
     """
@@ -178,6 +181,7 @@ def list_loan_applications(query_args):
 @loans_bp.alt_response(403, description="Not authorized")
 @loans_bp.alt_response(404, description="Loan application not found")
 @loans_bp.alt_response(422, description="Business rule violation")
+@loans_bp.doc(operationId="updateLoanApplicationStatus")
 @jwt_required()
 def update_loan_application_status(args, application_id):
     """

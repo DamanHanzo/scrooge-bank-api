@@ -221,6 +221,7 @@ def create_account(args):
 @accounts_bp.response(200, AccountResponseSchema, description="Account details")
 @accounts_bp.alt_response(403, description="Not authorized")
 @accounts_bp.alt_response(404, description="Account not found")
+@accounts_bp.doc(operationId="getAccount")
 @jwt_required()
 def get_account(account_id):
     """
@@ -258,6 +259,7 @@ def get_account(account_id):
 @accounts_bp.response(200, BalanceResponseSchema, description="Account balance")
 @accounts_bp.alt_response(403, description="Not authorized")
 @accounts_bp.alt_response(404, description="Account not found")
+@accounts_bp.doc(operationId="getAccountBalance")
 @jwt_required()
 def get_account_balance(account_id):
     """
@@ -299,6 +301,7 @@ def get_account_balance(account_id):
 @accounts_bp.alt_response(403, description="Not authorized")
 @accounts_bp.alt_response(404, description="Account not found")
 @accounts_bp.alt_response(422, description="Business rule violation")
+@accounts_bp.doc(operationId="createTransaction")
 @jwt_required()
 def create_transaction(args, account_id):
     """
@@ -459,6 +462,7 @@ def create_transaction(args, account_id):
 @accounts_bp.arguments(TransactionFilterSchema, location='query', description="Filter parameters")
 @accounts_bp.response(200, TransactionListSchema, description="Transaction history")
 @accounts_bp.alt_response(403, description="Not authorized")
+@accounts_bp.doc(operationId="getAccountTransactions")
 @jwt_required()
 def get_account_transactions(query_args, account_id):
     """
@@ -564,6 +568,7 @@ def get_account_transactions(query_args, account_id):
 @accounts_bp.alt_response(403, description="Not authorized")
 @accounts_bp.alt_response(404, description="Account not found")
 @accounts_bp.alt_response(422, description="Business rule violation")
+@accounts_bp.doc(operationId="updateAccountStatus")
 @jwt_required()
 def update_account_status(args, account_id):
     """
