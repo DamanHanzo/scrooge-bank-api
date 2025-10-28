@@ -1,4 +1,4 @@
-# Bank API
+# Scrooge Bank API
 
 A RESTful banking API built with Flask, PostgreSQL, and Docker. Implements core banking operations with secure authentication, role-based access control, and comprehensive transaction management.
 
