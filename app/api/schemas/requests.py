@@ -20,7 +20,8 @@ from app.schemas.loan import (
     LoanApplicationRequest,
     LoanReviewRequest,
     LoanPaymentRequest,
-    LoanApplicationStatusUpdateRequest
+    LoanApplicationStatusUpdateRequest,
+    LoanDisbursementRequest
 )
 
 
@@ -67,3 +68,4 @@ LoanApplicationSchema = pydantic_to_marshmallow(LoanApplicationRequest)
 LoanReviewSchema = pydantic_to_marshmallow(LoanReviewRequest)
 LoanPaymentSchema = pydantic_to_marshmallow(LoanPaymentRequest)
 LoanApplicationStatusUpdateSchema = pydantic_to_marshmallow(LoanApplicationStatusUpdateRequest)
+LoanDisbursementSchema = pydantic_to_marshmallow(LoanDisbursementRequest)

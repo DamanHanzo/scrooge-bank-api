@@ -33,6 +33,7 @@ from app.api.schemas.requests import (
     LoanReviewSchema,
     LoanPaymentSchema,
     LoanApplicationStatusUpdateSchema,
+    LoanDisbursementSchema,
 )
 
 # Response schemas
@@ -104,6 +105,7 @@ SCHEMAS = {
     "LoanReviewSchema": LoanReviewSchema,
     "LoanPaymentSchema": LoanPaymentSchema,
     "LoanApplicationStatusUpdateSchema": LoanApplicationStatusUpdateSchema,
+    "LoanDisbursementSchema": LoanDisbursementSchema,
     # Response schemas
     "TokenResponseSchema": TokenResponseSchema,
     "UserInfoSchema": UserInfoSchema,
@@ -169,6 +171,7 @@ __all__ = [
     "LoanApplicationSchema",
     "LoanReviewSchema",
     "LoanPaymentSchema",
+    "LoanDisbursementSchema",
     # Response schemas
     "TokenResponseSchema",
     "UserInfoSchema",

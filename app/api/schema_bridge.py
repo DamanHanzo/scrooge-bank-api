@@ -115,6 +115,12 @@ class PydanticToMarshmallow:
                 inner_field_class = cls.TYPE_MAPPING.get(inner_type, fields.Field)
                 return fields.List(inner_field_class(), allow_none=is_optional)
 
+        # Handle nested Pydantic models
+        if isinstance(field_type, type) and issubclass(field_type, BaseModel):
+            # Recursively convert nested Pydantic model
+            nested_schema = cls.convert(field_type)
+            return fields.Nested(nested_schema, allow_none=is_optional, required=field_info.is_required() and not is_optional)
+
         # Get base field class
         field_class = cls.TYPE_MAPPING.get(field_type, fields.String)
 

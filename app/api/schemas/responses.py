@@ -143,6 +143,7 @@ LoanResponseSchema = create_response_schema(
     {
         "id": fields.UUID(required=True),
         "customer_id": fields.UUID(required=True),
+        "loan_account_id": fields.UUID(required=False),
         "application_number": fields.String(required=True),
         "requested_amount": fields.String(required=True),
         "status": fields.String(
@@ -151,6 +152,7 @@ LoanResponseSchema = create_response_schema(
         ),
         "applied_at": fields.DateTime(required=True),
         "reviewed_at": fields.DateTime(required=False),
+        "disbursed_at": fields.DateTime(required=False),
         "approved_amount": fields.String(required=False),
         "interest_rate": fields.String(required=False),
     },
